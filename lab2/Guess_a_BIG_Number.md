@@ -1,4 +1,4 @@
-# Challenge `XYZ` writeup
+# Challenge `Guess Big Number` writeup
 
 - Vulnerability: What type of vulnerability is being exploited
   - It would be a Brute-force attack optimized with a binary search, in other words a Binary Search Attack

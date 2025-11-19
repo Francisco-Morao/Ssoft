@@ -1,18 +1,21 @@
-# Challenge `XYZ` writeup
+# Challenge `PwnTools Sockets` writeup
 
 - Vulnerability: What type of vulnerability is being exploited
-  - _Eg, SQL Injection, XSS, Endpoint is vulnerable to brute-force attack, etc_
+  - It is a Insecure state management vulnerability
 - Where: Where is the vulnerability present
-  - _Eg, `/guess/number` endpoint_
+  - "MORE" : leaks internal state and allows unlimited progression toward the target
 - Impact: What results of exploiting this vulnerability
-  - _Eg, allows to find the server's guess by enumeration_
+  - By repeatedly issuing the MORE command and monitoring the server’s state, an attacker can reliably reach the target condition and then execute FINISH to obtain the flag, bypassing the intended challenge mechanics.
 - NOTE: Any other observation
 
 ## Steps to reproduce
 
-1. Do this
-2. Do that
-3. ...
-N. Now something bad happened
+1. Establish a remote connection to the service.
+2. Read the initial target and current values provided by the server upon connection.
+3. Continuously send the `MORE` command.
+4. After each response, parse the newly returned CURRENT value.
+5. Repeat until the CURRENT value equals the target value.
+6. Once the values match, send `FINISH`
+7. Result: The server responds with the flag, demonstrating that the challenge can be solved solely by abusing the unrestricted state‑progression logic.
 
-[(POC)](`name_of_the_challenge_poc.py`)
+[(POC)](pwnTools_sockets.py)

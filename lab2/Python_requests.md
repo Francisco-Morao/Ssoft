@@ -1,13 +1,12 @@
-# Challenge `XYZ` writeup
+# Challenge `Python Request` writeup
 
 - Vulnerability: What type of vulnerability is being exploited
-  - It is a logic flaw / insecure state management vulnerability
+  - It is a Insecure state management vulnerability
 - Where: Where is the vulnerability present
   - /hello : starts the game and reveals initial state
   - /more : returns incremental numbers, allowing state enumeration
-  - /finish : returns the flag once target sum is reached
 - Impact: What results of exploiting this vulnerability
-  - The attacker can bypass normal gameplay logic and retrieve the secret/flag through predictable state enumeration.
+  - Exploiting this vulnerability allows an attacker to systematically reach the target sum without guessing blindly. By repeatedly querying /more and using the state preserved via cookies, the attacker can reliably trigger /finish and obtain the flag.
 - NOTE: Any other observation
 
 ## Steps to reproduce

@@ -1,18 +1,19 @@
-# Challenge `XYZ` writeup
+# Challenge `Secure by Design.py` writeup
 
 - Vulnerability: What type of vulnerability is being exploited
-  - _Eg, SQL Injection, XSS, Endpoint is vulnerable to brute-force attack, etc_
+  - It is a Insecure authentication mechanism vulnerability
 - Where: Where is the vulnerability present
-  - _Eg, `/guess/number` endpoint_
+  - It is present in the root endpoint(/) which sets and validates the `user` cookie to determine access level
 - Impact: What results of exploiting this vulnerability
-  - _Eg, allows to find the server's guess by enumeration_
+  - Exploiting this vulnerability allows an attacker to modify the user cookie to "admin", granting full unauthorized access to the application’s administrative functionality.
 - NOTE: Any other observation
 
 ## Steps to reproduce
 
-1. Do this
-2. Do that
-3. ...
-N. Now something bad happened
+1. Start a new session and access the root endpoint / to initialize the cookie storage.
+2. Submit any username via a POST request to the same endpoint.
+3. Modify the cookie value to the Base64‑encoded string of "admin".
+4. Send another request to / using the modified cookie.
+5. Result: The server believes the client is authenticated as an administrator and reveals admin‑only functionality or protected content.
 
-[(POC)](`name_of_the_challenge_poc.py`)
+[(POC)](secureByDesign.py)
