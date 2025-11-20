@@ -6,7 +6,6 @@
   - "MORE" : leaks internal state and allows unlimited progression toward the target
 - Impact: What results of exploiting this vulnerability
   - By repeatedly issuing the MORE command and monitoring the server’s state, an attacker can reliably reach the target condition and then execute FINISH to obtain the flag, bypassing the intended challenge mechanics.
-- NOTE: Any other observation
 
 ## Steps to reproduce
 
