@@ -6,7 +6,6 @@
   - It is present in the root endpoint(/) which sets and validates the `user` cookie to determine access level
 - Impact: What results of exploiting this vulnerability
   - Exploiting this vulnerability allows an attacker to modify the user cookie to "admin", granting full unauthorized access to the application’s administrative functionality.
-- NOTE: Any other observation
 
 ## Steps to reproduce
 
