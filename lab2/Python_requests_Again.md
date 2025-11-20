@@ -7,7 +7,6 @@
   - /more : decrements and checks the `remaining_tries` cookie
 - Impact: What results of exploiting this vulnerability
   - Exploiting this vulnerability allows an attacker to bypass the server-imposed limit on the number of attempts by modifying the cookie. As a result, the attacker can continue calling /more until they achieve the target state and then successfully call /finish to obtain the flag.
-- NOTE: Any other observation
 
 ## Steps to reproduce
 
