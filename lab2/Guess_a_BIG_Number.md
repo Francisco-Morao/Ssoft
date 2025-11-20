@@ -6,7 +6,6 @@
   - /number/{v} endpoint leaks comparison feedback ("Higher!", "Lower!"), enabling a binary-search enumeration attack to discover the secret number.
 - Impact: What results of exploiting this vulnerability
   - Because the endpoint leaks directional hints, an attacker can reliably and efficiently recover the correct number in only a small number of requests.
-- NOTE: Any other observation
 
 ## Steps to reproduce
 
