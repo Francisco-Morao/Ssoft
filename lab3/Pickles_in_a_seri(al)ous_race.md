@@ -1,7 +1,7 @@
 # Challenge `Pickles in a seri(al)ous race` writeup
 
 - Vulnerability: What type of vulnerability is being exploited
-  -The vulnerability being exploited here is Insecure Deserialization (Pickle RCE)
+  - The vulnerability being exploited here is Insecure Deserialization (Pickle RCE)
 - Where: Where is the vulnerability present
   - The vulnerability is the unsafe deserialization of attacker-controlled input using **pickle.loads()** when reading a Classy note. This allows remote code execution (RCE).
 - Impact: What results of exploiting this vulnerability
