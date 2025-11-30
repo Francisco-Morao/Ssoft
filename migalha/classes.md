@@ -39,3 +39,23 @@ Each entry records:
 - the sources and sanitizers associated with the flow
 
 This data can later be used to generate a report of all detected vulnerabilities.
+
+### Analysis flow
+
+```
+Patterns → Policy
+      ↓
+Slice of Python Code → Your Parser
+      ↓
+MultiLabelling  ← tracks taint for each variable
+      ↓
+MultiLabel  ← tracks taint per vulnerability pattern
+      ↓
+Label ← tracks taint per source & sanitizers
+      ↓
+Policy.detectIllegalFlows()
+      ↓
+Vulnerabilities.record()
+      ↓
+Final vulnerability report
+```
