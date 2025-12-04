@@ -5,7 +5,7 @@
 - Where: Where is the vulnerability present
   - Field: “Link of the bug/feature request you want to report on”
 - Impact: What results of exploiting this vulnerability
-  - Stealing admin session cookies (SECRET)
+  - Stealing admin session cookies
   - Account takeover
   - Unauthorized access with admin privileges
 
