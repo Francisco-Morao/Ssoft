@@ -15,7 +15,7 @@ Vulnerability occurs when user-controlled post content is rendered inside a ```<
 
 ## Steps to reproduce
 
-1. Create a new blog post with a ramdom title and submit a ramdom content.
+1. Create a new blog post with a random title and submit a random content.
 2. Click Create Post to create a post which will lead to the posts_under_review.
 3. Paste the following payload in the content box:
 ```sql
