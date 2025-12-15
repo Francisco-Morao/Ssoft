@@ -29,10 +29,7 @@ print &buffer
 print &test
 print (char*)&test - (char*)&buffer
 ```
-Output: 
-```
-$3 = 64
-```
+Output: `$3 = 64`
 3. The program checks for `test == 0x61626364`. However, the system uses little-endian format.
 This means the least significant byte is stored first in memory.
 So, to write 0x61626364 into memory, we must input: `dcba`

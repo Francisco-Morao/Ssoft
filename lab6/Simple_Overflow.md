@@ -31,10 +31,7 @@ print &buffer
 print &test
 print (char*)&test - (char*)&buffer
 ```
-Output: 
-```
-$3 = 128
-```
+Output: `$3 = 128`
 3. Payload construction
 We create a payload consisting of 128 bytes to fill buffer and extra bytes to overwrite test with a non‑zero value
 4. Connect to the challenge server and send the same payload.

