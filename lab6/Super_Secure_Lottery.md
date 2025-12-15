@@ -53,6 +53,7 @@ Print the value of prize:
 print prize
 ```
 Ouput: `$2 = 0xffffc854 ")\250A.\"\236\020k"`
+
 3. Calculating the offset using the distance between guess and prize: `0xffffc854 - 0xffffc824 = 0x30 = 48 bytes
 
 4. Send the payload to the challenge server having the little-endian system in consideration:
