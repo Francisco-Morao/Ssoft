@@ -20,6 +20,7 @@ int test;
 char buffer[128];
 ```
 Because buffer is stored before test on the stack, overflowing buffer allows direct control over test.
+
 2. Stack analysis using GDB
 ```
 break main
@@ -32,8 +33,10 @@ print &test
 print (char*)&test - (char*)&buffer
 ```
 Output: `$3 = 128`
+
 3. Payload construction
-We create a payload consisting of 128 bytes to fill buffer and extra bytes to overwrite test with a non‑zero value
+We create a payload consisting of 128 bytes to fill buffer and extra bytes to overwrite test with a non‑zero value.
+
 4. Connect to the challenge server and send the same payload.
 ```bash
 nc mustard.stt.rnl.tecnico.ulisboa.pt 25151
