@@ -27,11 +27,16 @@ class MultiLabel:
     # SQLi → { input → ∅ }
     # }
 
+    labels: Dict[Pattern, Label]
 
     def __init__(self, patterns: Set[Pattern]):
         self.labels = dict()
         for pattern in patterns:
             self.labels[pattern] = Label()
+
+    def get_label(self, pattern: Pattern) -> Label:
+        """Return the Label assigned to the given pattern."""
+        return self.labels[pattern]
 
     def add_source(self, source_name: str) -> None:
         """Add a source to the appropriate labels.
