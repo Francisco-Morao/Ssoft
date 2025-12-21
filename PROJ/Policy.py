@@ -61,7 +61,7 @@ class Policy:
         return vulnerabilities
     
     #TODO: implement properly
-    def detect_illegal_flows(self, sink_name: str, multilabel: MultiLabel) -> MultiLabel:
+    def detect_illegal_flows(sink_name: str, multilabel: MultiLabel) -> MultiLabel:
         """
         Given a sink name and a MultiLabel, returns a new MultiLabel that only includes labels
         for patterns where an illegal flow is taking place to the given sink.
