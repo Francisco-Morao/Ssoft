@@ -1,17 +1,15 @@
 import ast
 from astexport.export import export_dict
-import json
 
 # Maximum number of iterations for while loops to avoid infinite traces
 MAX_WHILE_REPETITIONS = 2
 
-def python_to_ast_json(code: str) -> str:
+def python_to_ast(code: str) -> ast.AST:
     """
-    Parses Python code into an AST and exports it as a JSON string
+    Parses Python code into an AST
     """
     tree = ast.parse(code)
-    ast_dict = export_dict(tree)
-    return json.dumps(ast_dict, indent=4)
+    return tree
 
 def traverse_ast(node: ast.AST, indent=0):
     """

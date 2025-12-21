@@ -7,7 +7,7 @@
 
 # --------------> DONE
 from dataclasses import dataclass
-from typing import Set
+from typing import Iterable, Set
 
 @dataclass
 class Pattern:
@@ -17,11 +17,24 @@ class Pattern:
     sinks: Set[str]
     sanitizers: Set[str]
 
+    def __init__(
+        self,
+        vulnerability_name: str,
+        sources: Iterable[str],
+        sinks: Iterable[str],
+        sanitizers: Iterable[str],
+    ) -> None:
+        """Initialize a pattern normalizing all collections to sets."""
+        self.vulnerability_name = vulnerability_name
+        self.sources = set(sources)
+        self.sinks = set(sinks)
+        self.sanitizers = set(sanitizers)
+
     def is_source(self, item: str) -> bool:
         return item in self.sources
 
     def is_sanitizer(self, item: str) -> bool:
-        return item in self._sanitizers
+        return item in self.sanitizers
 
     def is_sink(self, item: str) -> bool:
-        return item in self._sinks
+        return item in self.sinks
