@@ -6,6 +6,7 @@
 # multilabels.
 # (b) Selectors for returning the multilabel that is assigned to a given name.
 # (c) Mutator for updating the multilabel that is assigned to a name.
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Dict
 from MultiLabel import MultiLabel
@@ -23,3 +24,24 @@ class MultiLabelling:
     
     def mutator(self, var_name: str, multilabel: MultiLabel) -> None:
         self.map[var_name] = multilabel
+        
+    def copy(self) -> 'MultiLabelling':
+        return MultiLabelling(deepcopy(self.map))
+    
+    def combine(self, other: "MultiLabelling") -> "MultiLabelling":
+        
+        combined = MultiLabelling({}) 
+
+        # Combine all names from both self and other
+        for name in set(self.map.keys()).union(other.map.keys()):
+            ml_self = self.map.get(name)
+            ml_other = other.map.get(name)
+            
+            if ml_self and ml_other:
+                combined.map[name] = ml_self.combinor(ml_other)
+            elif ml_self:
+                combined.map[name] = ml_self
+            elif ml_other:
+                combined.map[name] = ml_other
+
+        return combined 

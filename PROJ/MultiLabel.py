@@ -61,7 +61,7 @@ class MultiLabel:
         """Returns a new MultiLabel that combines this MultiLabel with another."""
         """ For each pattern in both MultiLabels, combine their labels. """
 
-        combined = MultiLabel() 
+        combined = MultiLabel(set()) 
 
         for pattern in set(self.labels.keys()).union(other.labels.keys()):
             label_self = self.labels.get(pattern)

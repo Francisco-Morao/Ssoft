@@ -26,8 +26,7 @@
 
 
 from PROJ.Policy import Policy
-from typing import List, Dict, Any, Set, Tuple
-from PROJ.Pattern import Pattern
+from typing import List, Any, Set
 from PROJ.MultiLabel import MultiLabel
 from PROJ.Label import Label
 from dataclasses import dataclass, field
@@ -55,8 +54,30 @@ class Vulnerabilities:
                 )
                 self.vulnerabilities.append(vulnerability)
 
-    # TODO Falta esta parte toda do explicit/implicit e sanitizers
-    def _extract_flows(self, multilabel: MultiLabel) -> List[List[Any]]:
+    def get_output(self, source_line: int, sink_line: int, flow_type: str) -> List[Any]:
+        """Returns the vulnerabilities in the specified output format."""
+        
+        if not self.vulnerabilities:
+            return ["none"]
 
-    def get_output(self) -> List[Any]:
-        #TODO: implementar
+        output = []
+
+        for vulnerability in self.vulnerabilities:
+            flows = []
+            for label in vulnerability.labels:
+                source = [(src, source_line) for src in label.flows.keys()] # TODO THIS IS NOT WHAT WE WANT
+                sanitizations = [(sanitizer, sanitizer.line_number) for sanitizer in label.flows.values()] # TODO ESTA MAL FEITO 
+                flows.append([flow_type, sanitizations])
+            output.append({
+                "vulnerability": [vulnerability.vulnerability],
+                "source": source,
+                "sink": [vulnerability.sink, sink_line],
+                "flows": flows
+            })
+        return output
+
+    def illegal_flow(self, multilabel: MultiLabel, name: str) -> None:
+        
+        illegal_Multilabel = Policy.detect_illegal_flows(multilabel, name)
+        
+        self.add_vulnerability(name, illegal_Multilabel)
