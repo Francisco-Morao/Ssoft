@@ -80,3 +80,33 @@ def combine_sequence(stmts):
             result.append(h + t)
 
     return result
+
+# 1. Write a program that takes a program written in Python, extracts its AST, and outputs the result in
+# the JSON format. In Python you can import the ast module, and use astexport.export.export_dict
+# from astexport, which takes a Python AST and returns its representation in JSON. You can visualize
+# the result as a tree using this online tool: http://jsonviewer.stack.hu/.
+
+# 2. Write a function that traverses an AST, and prints, for each node, its node type(field “ast_type”)
+# and the line number of where it starts. Make sure you have a recursive function.
+
+# 3. Write a function that traverses an AST, and prints its sets of complete traces, i.e., a representation
+# of all possible execution paths. To tackle the cases where the number of possible paths is infinite
+# (think of the while loop), you can assume a constant maximum number of repetitions that the loop
+# can do. For time reasons, choose only a subset of the possible node types, such as the ones that
+# capture the WHILE language constructs. Proceed by case analysis on the node type.
+
+from ast import AST, parse
+import ast
+from typing import Any, Dict, List, Union
+import json
+from astexport.export import export_dict
+
+
+# Exercise 1: Function to convert AST to JSON-like dictionary
+def ast_to_dict(py_str: str) -> str:
+    """Convert Python source code to its AST representation in dictionary format."""
+    ast_py = parse(py_str)
+    ast_dict = export_dict(ast_py)
+    return json.dumps(ast_dict, indent=4)
+    
+

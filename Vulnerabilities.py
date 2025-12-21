@@ -54,7 +54,7 @@ class Vulnerabilities:
                 )
                 self.vulnerabilities.append(vulnerability)
 
-    def get_output(self, source_line: int, sink_line: int, flow_type: str) -> List[Any]:
+    def as_output(self, source_line: int, sink_line: int, flow_type: str) -> List[Any]:
         """Returns the vulnerabilities in the specified output format."""
         
         if not self.vulnerabilities:
@@ -65,6 +65,7 @@ class Vulnerabilities:
         for vulnerability in self.vulnerabilities:
             flows = []
             for label in vulnerability.labels:
+                #uma label normal tem varios sourcers mas uma label de uma multilabel so tem um source ? 
                 source = [(src, source_line) for src in label.flows.keys()] # TODO THIS IS NOT WHAT WE WANT
                 sanitizations = [(sanitizer, sanitizer.line_number) for sanitizer in label.flows.values()] # TODO ESTA MAL FEITO 
                 flows.append([flow_type, sanitizations])
@@ -75,9 +76,3 @@ class Vulnerabilities:
                 "flows": flows
             })
         return output
-
-    def illegal_flow(self, multilabel: MultiLabel, name: str) -> None:
-        
-        illegal_Multilabel = Policy.detect_illegal_flows(multilabel, name)
-        
-        self.add_vulnerability(name, illegal_Multilabel)

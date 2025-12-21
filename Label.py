@@ -32,13 +32,12 @@ class Label:
     # sets, unlike lists or tuples, cannot have multiple occurrences of the same element and store unordered values.
     flows: Dict[str, Set[str]] = field(default_factory=dict)
     # a cada source pode estar associado um conjunto de sanitizers
-    
+
     def add_source(self, source: str):
         """Add a source to the label."""
         if source not in self.flows:
             self.flows[source] = set()
-            #empty set of sanitizers for the new source
-            
+            #empty set of sanitizers for the new source        
 
     def add_sanitizer(self, source: str, sanitizer: str):
         """Add a sanitizer for a given source."""
@@ -46,7 +45,6 @@ class Label:
             self.flows[source].add(sanitizer)
         else:
             self.flows[source] = {sanitizer}
-
 
     def combinor(self, other: "Label") -> "Label":
         """ New label that represents the integrity of information that results from combining two pieces of information. """

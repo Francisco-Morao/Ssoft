@@ -57,7 +57,7 @@ def main():
 
 	ast_tree = ast_utils.python_to_ast(code)
 
-	ast_utils.traverse_ast(ast_tree)
+	print(ast_utils.traverse_ast(ast_tree))
 		
 	output_dir = os.path.join(os.getcwd(), "output")
 	os.makedirs(output_dir, exist_ok=True)

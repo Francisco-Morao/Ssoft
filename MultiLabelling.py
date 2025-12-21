@@ -28,8 +28,9 @@ class MultiLabelling:
     def copy(self) -> 'MultiLabelling':
         return MultiLabelling(deepcopy(self.map))
     
-    def combine(self, other: "MultiLabelling") -> "MultiLabelling":
-        
+    def combinor(self, other: "MultiLabelling") -> "MultiLabelling":
+        # Combinor for returning a new multilabelling where multilabels associated to names
+        # capture what might have happened if either of the multilabellings hold.
         combined = MultiLabelling({}) 
 
         # Combine all names from both self and other
