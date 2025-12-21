@@ -1,10 +1,29 @@
+# 1. Write a program that takes a program written in Python, extracts its AST, and outputs the result in
+# the JSON format. In Python you can import the ast module, and use astexport.export.export_dict
+# from astexport, which takes a Python AST and returns its representation in JSON. You can visualize
+# the result as a tree using this online tool: http://jsonviewer.stack.hu/.
+
+# 2. Write a function that traverses an AST, and prints, for each node, its node type(field “ast_type”)
+# and the line number of where it starts. Make sure you have a recursive function.
+
+# 3. Write a function that traverses an AST, and prints its sets of complete traces, i.e., a representation
+# of all possible execution paths. To tackle the cases where the number of possible paths is infinite
+# (think of the while loop), you can assume a constant maximum number of repetitions that the loop
+# can do. For time reasons, choose only a subset of the possible node types, such as the ones that
+# capture the WHILE language constructs. Proceed by case analysis on the node type.
+
 import ast
-import MultiLabel
 from astexport.export import export_dict
 import json
+import traverses_op
 from Policy import Policy
 from MultiLabelling import MultiLabelling
 from Vulnerabilities import Vulnerabilities
+import MultiLabel
+
+def eval_expr(node, policy, multilabelling, vulns):
+    # Delegate expression evaluation to traverses_op's dispatcher
+    return traverses_op.eval_expr(node, policy, multilabelling, vulns)
 
 # Maximum number of iterations for while loops to avoid infinite traces
 MAX_WHILE_REPETITIONS = 2
@@ -40,109 +59,25 @@ def traverse_ast(node: ast.AST, indent=0, Policy=None, MultiLabelling=None, Vuln
     what illegal flows are possibly hapening, and save those as detected vulnerabilities
     """
 
-
     prefix = "  " * indent
     node_type = type(node).__name__
     lineno = getattr(node, "lineno", None)
 
-    print(f"{prefix}{node_type} (line {lineno})")
+    label = eval_expr(node, Policy, MultiLabelling, Vulnerabilities) if isinstance(node, ast.expr) else None
+    extra = f" -> {label}" if label is not None else ""
+    print(f"{prefix}{node_type} (line {lineno}){extra}")
 
     for child in ast.iter_child_nodes(node):
         traverse_ast(child, indent + 1, Policy, MultiLabelling, Vulnerabilities)
-
-    #ast.Call
-    #ast.UnaryOp
-    #ast.BoolOp
-
-def traverse_Name(node: ast.Name, Policy: Policy, MultiLabelling: MultiLabelling, Vulnerabilities: Vulnerabilities):
-    """
-    Handles traversal of ast.Name nodes.
-    """
-    return MultiLabelling.get_label(node.id)
-    
-def traverse_Constant(node: ast.Constant, Policy: Policy, MultiLabelling: MultiLabelling, Vulnerabilities: Vulnerabilities): 
-    """
-    Handles traversal of ast.Constant nodes.
-    """
-    # TODO
-    # Constants are considered to have the lowest security label
-    return MultiLabel.MultiLabel.lowest_label()
-
-def traverse_BinOp(node: ast.BinOp, Policy: Policy, MultiLabelling: MultiLabelling, Vulnerabilities: Vulnerabilities):
-    """
-    Handles traversal of ast.BinOp nodes.
-    """
-    pass
-    # TODO
-
-def traverse_Compare(node: ast.Compare, Policy: Policy, MultiLabelling: MultiLabelling, Vulnerabilities: Vulnerabilities):    
-    """
-    Handles traversal of ast.Compare nodes.
-    """
-    pass
-    # TODO
-    # Implement logic for handling ast.Compare nodes
-    
-
-def traverse_Attribute(node: ast.Attribute, Policy: Policy, MultiLabelling: MultiLabelling, Vulnerabilities: Vulnerabilities):
-    """
-    Handles traversal of ast.Attribute nodes.
-    """
-    pass
-    # TODO
-
-    # Implement logic for handling ast.Attribute nodes
-    
-def traverse_Subscript(node: ast.Subscript, Policy: Policy, MultiLabelling: MultiLabelling, Vulnerabilities: Vulnerabilities):
-    """
-    Handles traversal of ast.Subscript nodes.
-    """
-    pass
-    # TODO
-
-    # Implement logic for handling ast.Subscript nodes
-  
-def traverse_Assign(node: ast.Assign, Policy: Policy, MultiLabelling: MultiLabelling, Vulnerabilities: Vulnerabilities):
-    """
-    Handles traversal of ast.Assign nodes.
-    """
-    pass
-    # TODO
-
-    # Implement logic for handling ast.Assign nodes
-
-def traverse_If(node: ast.If, Policy: Policy, MultiLabelling: MultiLabelling, Vulnerabilities: Vulnerabilities):    
-    """
-    Handles traversal of ast.If nodes.
-    """
-    pass
-    # TODO
-
-    # Implement logic for handling ast.If nodes
-
-def traverse_While(node: ast.While, Policy: Policy, MultiLabelling: MultiLabelling, Vulnerabilities: Vulnerabilities):
-    """
-    Handles traversal of ast.While nodes.
-    """
-    pass
-    # TODO
-
-    # Implement logic for handling ast.While nodes
-
-def traverse_Expr(node: ast.Expr, Policy: Policy, MultiLabelling: MultiLabelling, Vulnerabilities: Vulnerabilities):
-    """
-    Handles traversal of ast.Expr nodes.
-    """
-    pass
-    # TODO
-
-    # Implement logic for handling ast.Expr nodes
 
 def traces(node: ast.AST):
     """
     Returns all possible execution traces of an AST node.
     Each trace is represented as a list of node descriptions.
     """
+    
+    # TODO CHANGE THIS TO HANDLE MORE NODE TYPES
+    
     if isinstance(node, ast.Module):
         return combine_sequence(node.body)
 
