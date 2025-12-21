@@ -8,9 +8,8 @@ class Label:
                  sanitizers: Optional[Iterable[str]] = None) -> None:
         """Construct a Label.
 
-        - `sources` is a dict mapping source -> influence type(s). Influence
-          types are normalized to a set of strings for each source.
-        - `sanitizers` is an iterable of sanitizer identifiers (stored as a set).
+            // key - the name of the source
+            // value - name of the sanitizers applied to information of that source
         """
         self._sources: Dict[str, Set[str]] = {}
         if sources:
@@ -78,7 +77,7 @@ class Label:
         return max(types_set, key=score)
 
     @staticmethod
-    def combinor(a: "Label", b: "Label") -> "Label":
+    def combiner(a: "Label", b: "Label") -> "Label":
         """Combine two Labels and return a NEW Label describing the integrity.
 
         - Sources are combined by taking the union of influence types per source.
