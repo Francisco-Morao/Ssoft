@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import sys
+import ast_utils
 
 def main():
 	parser = argparse.ArgumentParser()
@@ -10,6 +11,8 @@ def main():
 	args = parser.parse_args()
 
 	slice_path = args.slice_path
+	f = open(slice_path, "r", encoding="utf-8")
+	code = f.read()
 	patterns_path = args.patterns_path
 
 	f = open(patterns_path, "r", encoding="utf-8")
@@ -18,7 +21,7 @@ def main():
 	output_dir = os.path.join(os.getcwd(), "output")
 	os.makedirs(output_dir, exist_ok=True)
 
-	
+	print(ast_utils.python_to_ast_json(code))
 
 	base = os.path.splitext(os.path.basename(slice_path))[0]
 	out_filename = f"{base}.output.json"
