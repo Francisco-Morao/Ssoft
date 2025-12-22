@@ -97,7 +97,8 @@ def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling
             for pattern in policy.patterns:
                 if pattern.is_source(func_name):
                     ml = MultiLabel(policy.patterns)
-                    ml.add_source(func_name)
+                    lineno = getattr(node, "lineno", None)
+                    ml.add_source(func_name, lineno)
                     return ml
         elif isinstance(parent, ast.Expr):
             # Check if arguments are not sanitized

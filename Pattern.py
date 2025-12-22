@@ -7,7 +7,7 @@
 
 # --------------> DONE
 from dataclasses import dataclass
-from typing import Iterable, Set
+from typing import Iterable
 
 @dataclass(frozen=True)
 class Pattern:

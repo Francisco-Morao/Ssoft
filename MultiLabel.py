@@ -38,19 +38,19 @@ class MultiLabel:
         """Return the Label assigned to the given pattern."""
         return self.labels[pattern]
 
-    def add_source(self, source_name: str) -> None:
+    def add_source(self, source_name: str, lineno: int) -> None:
         """Add a source to the appropriate labels.
         When adding a source, ensure it is only added to labels corresponding to patterns"""
         for pattern, label in self.labels.items():
             if pattern.is_source(source_name):
-                label.add_source(source_name)
+                label.add_source(source_name, lineno)
 
-    def add_sanitizer(self, source_name: str, sanitizer_name: str) -> None:
+    def add_sanitizer(self, source_name: str, lineno: int, sanitizer_name: str) -> None:
         """"Add a sanitizer for a given source to the appropriate labels.
         When adding a sanitizer, ensure it is only added to labels corresponding to patterns"""
         for pattern, label in self.labels.items():
             if pattern.is_sanitizer(sanitizer_name) and pattern.is_source(source_name):
-                label.add_sanitizer(source_name, sanitizer_name)
+                label.add_sanitizer(source_name, lineno, sanitizer_name)
 
     def add_empty_pattern(self, pattern: Pattern) -> None:
         """Add a pattern with an empty label to the MultiLabel."""

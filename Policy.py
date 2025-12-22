@@ -87,7 +87,7 @@ class Policy:
                     # An illegal flow occurs if no sanitizer from the pattern has been applied
                     if not sanitizers or not sanitizers.intersection(pattern.sanitizers):
                         # Add the source and its sanitizers to the illegal_multilabel
-                        illegal_multilabel.labels[pattern].add_source(source)
+                        illegal_multilabel.labels[pattern].add_source(source[0], source[1])
                         illegal_multilabel.labels[pattern].flows[source] = sanitizers.copy()
 
         # Return None if no illegal flows were found

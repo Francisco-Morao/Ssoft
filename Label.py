@@ -17,7 +17,7 @@
 # the original ones.
 
 from dataclasses import dataclass, field
-from typing import Dict, Set
+from typing import Dict, Set, Tuple
 
 
 @dataclass
@@ -27,24 +27,28 @@ class Label:
     # it might be influenced by a same source in different ways
     # source -> sanitizers
 
-    # key      the name of the source
+    # key      the name of the source and the lineno where it is called
     # value    name of the sanitizers applied to information of that source 
     # sets, unlike lists or tuples, cannot have multiple occurrences of the same element and store unordered values.
-    flows: Dict[str, Set[str]] = field(default_factory=dict)
+    flows: Dict[Tuple[str, int], Set[str]] = field(default_factory=dict)
     # a cada source pode estar associado um conjunto de sanitizers
 
-    def add_source(self, source: str):
+    def add_source(self, source: str, lineno):
         """Add a source to the label."""
-        if source not in self.flows:
-            self.flows[source] = set()
+        
+        Tuple_key = (source, lineno)
+        
+        if Tuple_key not in self.flows:
+            self.flows[Tuple_key] = set()
             #empty set of sanitizers for the new source        
 
-    def add_sanitizer(self, source: str, sanitizer: str):
+    def add_sanitizer(self, source: str, lineno: int, sanitizer: str):
         """Add a sanitizer for a given source."""
-        if source in self.flows:
-            self.flows[source].add(sanitizer)
+        Tuple_key = (source, lineno)
+        if Tuple_key in self.flows:
+            self.flows[Tuple_key].add(sanitizer)
         else:
-            self.flows[source] = {sanitizer}
+            self.flows[Tuple_key] = {sanitizer}
 
     def combinor(self, other: "Label") -> "Label":
         """ New label that represents the integrity of information that results from combining two pieces of information. """

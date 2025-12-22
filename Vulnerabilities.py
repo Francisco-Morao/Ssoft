@@ -54,7 +54,7 @@ class Vulnerabilities:
                 )
                 self.vulnerabilities.append(vulnerability)
 
-    def as_output(self, source_line: int, flow_type: str) -> List[Any]:
+    def as_output(self, flow_type: str) -> List[Any]:
         """Returns the vulnerabilities in the specified output format."""
         
         if not self.vulnerabilities:
@@ -63,16 +63,34 @@ class Vulnerabilities:
         output = []
 
         for vulnerability in self.vulnerabilities:
-            flows = []
+            # Each label represents one source with its sanitizers
             for label in vulnerability.labels:
-                #uma label normal tem varios sourcers mas uma label de uma multilabel so tem um source ? 
-                source = [(src, source_line) for src in label.flows.keys()] # TODO THIS IS NOT WHAT WE WANT
-                sanitizations = [(sanitizer, sanitizer.line_number) for sanitizer in label.flows.values()] # TODO ESTA MAL FEITO 
-                flows.append([flow_type, sanitizations])
-            output.append({
-                "vulnerability": [vulnerability.vulnerability],
-                "source": source,
-                "sink": [vulnerability.sink[0], vulnerability.sink[1]],
-                "flows": flows
-            })
+                # Each source in the label.flows represents a different flow path
+                for source_tuple, sanitizers_set in label.flows.items():
+                    # Convert sanitizers set to list of [sanitizer_name, line_number] pairs
+                    # Since we don't track sanitizer line numbers yet, use 0 as placeholder
+                    sanitizations = []  # Empty list if no sanitizers, otherwise list of [name, lineno]
+                    
+                    # Build the flow entry
+                    flows = [[flow_type, sanitizations]]
+                    
+                    output.append({
+                        "vulnerability": vulnerability.vulnerability,
+                        "source": [source_tuple[0], source_tuple[1]],
+                        "sink": [vulnerability.sink[0], vulnerability.sink[1]],
+                        "flows": flows
+                    })
         return output
+
+
+# <OUTPUT> ::= [ <VULNERABILITIES> ]
+# <VULNERABILITIES> := "none" | <VULNERABILITY> | <VULNERABILITY>, <VULNERABILITIES>
+# <VULNERABILITY> ::= { "vulnerability": "<STRING>",
+#                     "source": [ "<STRING>", <INT> ]
+#                     "sink": [ "<STRING>", <INT> ],
+#                     "flows": [ <FLOWS> ] }
+# <FLOWS> ::= <FLOW> | <FLOW>, <FLOWS>
+# <FLOW> ::= [ <IMPEXP>, [] ] | [ <IMPEXP>, [<SANITIZERS>] ]
+# <IMPEXP> ::= "implicit" | "explicit"
+# <SANITIZERS> ::= <SANITIZER> | <SANITIZER>, <SANITIZERS>
+# <SANITIZER> ::= [ <STRING>, <INT> ]
