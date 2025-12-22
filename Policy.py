@@ -78,21 +78,12 @@ class Policy:
             # Check if the sink_name is a sink for this pattern
             if sink_name in pattern.sinks:
                 # Check if there's an illegal flow (any source not properly sanitized)
-                # has_illegal_flow = False
-                # for source, sanitizers in label.flows.items():
-                #     # An illegal flow occurs if no sanitizer from the pattern has been applied
-                #     # (either no sanitizers at all, or none of the pattern's sanitizers)
-                    
-                #     # even tho that if there is a sanitizer its always going to be from the pattern
-                #     if not sanitizers or not sanitizers.intersection(pattern.sanitizers):
-                #         has_illegal_flow = True
-                #         break
-                
-                # If there's an illegal flow, add the pattern and copy its label
-                # if has_illegal_flow:
-
-                # Directly copy the flows dictionary to preserve exact label data
                 for source, sanitizers in label.flows.items():
-                    illegal_multilabel.labels[pattern].flows[source] = sanitizers.copy()
+                    # An illegal flow occurs if no sanitizer from the pattern has been applied
+                    # (either no sanitizers at all, or none of the pattern's sanitizers)
+                    
+                    # even tho that if there is a sanitizer its always going to be from the pattern
+                    if not sanitizers or not sanitizers.intersection(pattern.sanitizers):
+                        illegal_multilabel.labels[pattern].flows[source] = sanitizers.copy()
         
         return illegal_multilabel

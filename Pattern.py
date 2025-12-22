@@ -9,13 +9,15 @@
 from dataclasses import dataclass
 from typing import Iterable, Set
 
-@dataclass
+@dataclass(frozen=True)
 class Pattern:
-
+    """
+    We use frozen attributes to make the class hashable, allowing it to be used as a dictionary key in MultiLabel.
+    """
     vulnerability_name: str
-    sources: Set[str]
-    sinks: Set[str]
-    sanitizers: Set[str]
+    sources: frozenset[str]
+    sinks: frozenset[str]
+    sanitizers: frozenset[str]
 
     def __init__(
         self,
@@ -24,11 +26,11 @@ class Pattern:
         sinks: Iterable[str],
         sanitizers: Iterable[str],
     ) -> None:
-        """Initialize a pattern normalizing all collections to sets."""
-        self.vulnerability_name = vulnerability_name
-        self.sources = set(sources)
-        self.sinks = set(sinks)
-        self.sanitizers = set(sanitizers)
+        """Initialize a pattern normalizing all collections to frozensets."""
+        object.__setattr__(self, 'vulnerability_name', vulnerability_name)
+        object.__setattr__(self, 'sources', frozenset(sources))
+        object.__setattr__(self, 'sinks', frozenset(sinks))
+        object.__setattr__(self, 'sanitizers', frozenset(sanitizers))
 
     def is_source(self, item: str) -> bool:
         return item in self.sources

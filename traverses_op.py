@@ -4,6 +4,7 @@ from MultiLabel import MultiLabel
 from MultiLabelling import MultiLabelling
 from Vulnerabilities import Vulnerabilities
 import traverses_op
+import inspect
 
 #######################
 # Expression Handlers #
@@ -18,12 +19,13 @@ def traverse_Name(node: ast.Name, policy: Policy, multiLabelling: MultiLabelling
     # Return the multilabel associated with this variable name
     
     try:
-        return multiLabelling.get_multilabel(node.id)
+        multilabel = multiLabelling.get_multilabel(node.id)
+        return multilabel
     except KeyError:
         # Handle the case where the variable name does not exist
         return MultiLabel(policy.patterns)
     
-def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities):
+def traverse_Call_inactive(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities):
     """
     Handles traversal of ast.Call nodes.
     """
@@ -81,11 +83,34 @@ def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling
     return combined_ml
 
 
-    # for keyword in node.keywords: # TODO NAO TENHO A CERTEZA SE ISTO COBRE A PARTE DO keyword(...
-    #     kwarg_ml = eval_expr(keyword.value, policy, multiLabelling, vulnerabilities)
-    #     combined_ml = combined_ml.combinor(kwarg_ml)
+def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None):
+    func_name = None
+    if isinstance(node.func, ast.Name): # d()
+        func_name = node.func.id
+    elif isinstance(node.func, ast.Attribute): # modulo.attr()
+        func_name = node.func.attr
 
-    
+    # TODO: sanitizers can be assigned, don't know if they can be called standalone
+    if func_name:
+        # Distinguish between assigned and standalone calls
+        if isinstance(parent, ast.Assign):
+            for vuln_name, pattern in policy.patterns.items():
+                if pattern.is_source(func_name):
+                    ml = MultiLabel(policy.patterns)
+                    ml.add_source(func_name)
+                    return ml
+        elif isinstance(parent, ast.Expr):
+            # Check if arguments are not sanitized
+            for arg in node.args:
+                arg_ml = eval_expr(arg, policy, multiLabelling, vulnerabilities, parent=node)
+                illegal_multilabel = Policy.detect_illegal_flows(func_name, arg_ml)
+                if illegal_multilabel:
+                    print("detected viulnerability")
+                    lineno = getattr(node, "lineno", None)
+                    vulnerabilities.add_vulnerability(func_name, arg_ml, lineno)
+
+    return MultiLabel(policy.patterns)
+
 def traverse_UnaryOp(node: ast.UnaryOp, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities):
     """
     Handles traversal of ast.UnaryOp nodes.
@@ -161,7 +186,7 @@ def traverse_Subscript(node: ast.Subscript, policy: Policy, multiLabelling: Mult
     # Subscript(expr value, expr slice, expr_context ctx)
     
     # TODO handle slice properly ??????? PRECISAMOS DE OS AVALIAR? NOT SURE PROVAVELEMTNE SIM
-    # VOU METER UMA VERSAO COM AVALIAÇAO DAS SLICES MAS DESPOIS CONFIRMAR
+    # VOU METER UMA VERSAO COM AVALIÇAO DAS SLICES MAS DESPOIS CONFIRMAR
     
     value_ml = eval_expr(node.value, policy, multiLabelling, vulnerabilities)
     slice_ml = eval_expr(node.slice, policy, multiLabelling, vulnerabilities)
@@ -188,13 +213,14 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
     #                     Name(id='a', ctx=Store()),
     #                     Name(id='b', ctx=Store())],
     #                 value=Constant(value=1))])
-        
+    
     target = node.targets[0]
     
-    target_ml = eval_expr(target, policy, multiLabelling, vulnerabilities)    
+    # Only evaluate the value being assigned, not the target
+    target_ml = eval_expr(target, policy, multiLabelling, vulnerabilities)
     value_ml = eval_expr(node.value, policy, multiLabelling, vulnerabilities)
     
-    combined_ml = target_ml.combinor(value_ml)
+    combined_ml = value_ml.combinor(target_ml)
     
     # Update multilabelling for each target
     for target in node.targets:
@@ -225,10 +251,10 @@ def traverse_Expr(node: ast.Expr, policy: Policy, multiLabelling: MultiLabelling
     """
     Handles traversal of ast.Expr nodes.
     """
-    pass
-    # TODO
-
-    # Implement logic for handling ast.Expr nodes
+    
+    # Evaluate the expression (e.g., to detect sinks), but return the multiLabelling unchanged
+    eval_expr(node.value, policy, multiLabelling, vulnerabilities, parent=node)
+    return multiLabelling
     
 EXPR_DISPATCH = {
     ast.Name: traverse_Name,
@@ -242,10 +268,16 @@ EXPR_DISPATCH = {
     ast.Compare: traverse_Compare,
 }
 
-def eval_expr(node: ast.AST, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities) -> MultiLabel:
+def eval_expr(node: ast.AST, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None) -> MultiLabel:
     handler = EXPR_DISPATCH.get(type(node))
+    print(handler)
     if handler:
-        return handler(node, policy, multiLabelling, vulnerabilities)
+        # Check if the handler accepts a 'parent' parameter
+        handler_signature = inspect.signature(handler)
+        if 'parent' in handler_signature.parameters:
+            return handler(node, policy, multiLabelling, vulnerabilities, parent=parent)
+        else:
+            return handler(node, policy, multiLabelling, vulnerabilities)
     # Fallback: return an empty multilabel across policy patterns
     return MultiLabel(policy.patterns)
 

@@ -6,7 +6,7 @@
 # illegal flows that are found, organized according to vulnerability names.
 
 #   (b) Operation that given a multilabel and a name, which represents detected
-# illegal flows – the multilabel contains the sources and the sanitizers for the
+# illegal flows – the multilabel contains the sources and the sanitizers1 for the
 # patterns for which the name is a sink and the flows are illegal) – saves them
 # in a format that enables to report vulnerabilities at the end of the analysis.
 
@@ -38,18 +38,19 @@ class Vulnerabilities:
 
         vulnerability: str      # comes from pattern.vulnerability_name
         sink: Tuple[str, int]    # (sink_name, line_number)
-        labels: Set[Label] = field(default_factory=set) #represents the source and sanitizers
+        labels: List[Label] = field(default_factory=list) #represents the source and sanitizers
     
     vulnerabilities: List[Vulnerability] = field(default_factory=list)
     
-    def add_vulnerability(self, sink: str, multilabel: MultiLabel, lineno: int) -> None:
+    def add_vulnerability(self, sink: str, multilabel: MultiLabel, sink_lineno: int) -> None:
         """Given a multilabel and a sink name, saves the illegal flows in the vulnerabilities list."""
         for pattern, label in multilabel.labels.items():
             if pattern.is_sink(sink):
                 vulnerability = self.Vulnerability(
                     vulnerability=pattern.vulnerability_name,
-                    sink= (sink, lineno),
-                    labels={label}
+                    sink= (sink, sink_lineno),
+                    # TODO: check this way of fetching correct label works
+                    labels=[label]
                 )
                 self.vulnerabilities.append(vulnerability)
 
