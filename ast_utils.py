@@ -43,7 +43,7 @@ def python_to_ast(code: str) -> ast.AST:
     tree = ast.parse(code)
     return tree
 
-def traverse_ast(node: ast.AST, indent=0, Policy=None, MultiLabelling=None, Vulnerabilities=None):
+def traverse_ast(node: ast.AST, indent=0):
     """
     Recursively traverses an AST, printing each node type and its starting line number.
 
@@ -63,12 +63,10 @@ def traverse_ast(node: ast.AST, indent=0, Policy=None, MultiLabelling=None, Vuln
     node_type = type(node).__name__
     lineno = getattr(node, "lineno", None)
 
-    # label = eval_expr(node, Policy, MultiLabelling, Vulnerabilities) if isinstance(node, ast.expr) else None
-    # extra = f" -> {label}" if label is not None else ""
     print(f"{prefix}{node_type} (line {lineno})")
 
     for child in ast.iter_child_nodes(node):
-        traverse_ast(child, indent + 1, Policy, MultiLabelling, Vulnerabilities)
+        traverse_ast(child, indent + 1)
 
 def traces(node: ast.AST):
     """

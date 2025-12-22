@@ -25,8 +25,7 @@
 # is the line number of where it appears in the code (if no sanitition occurs then the list is empty).
 
 
-from Policy import Policy
-from typing import List, Any, Set
+from typing import List, Set, Tuple, Any
 from MultiLabel import MultiLabel
 from Label import Label
 from dataclasses import dataclass, field
@@ -38,23 +37,23 @@ class Vulnerabilities:
     class Vulnerability:
 
         vulnerability: str      # comes from pattern.vulnerability_name
-        sink: str    # (sink_name, line_number)
+        sink: Tuple[str, int]    # (sink_name, line_number)
         labels: Set[Label] = field(default_factory=set) #represents the source and sanitizers
     
     vulnerabilities: List[Vulnerability] = field(default_factory=list)
     
-    def add_vulnerability(self, sink: str, multilabel: MultiLabel) -> None:
+    def add_vulnerability(self, sink: str, multilabel: MultiLabel, lineno: int) -> None:
         """Given a multilabel and a sink name, saves the illegal flows in the vulnerabilities list."""
         for pattern, label in multilabel.labels.items():
             if pattern.is_sink(sink):
                 vulnerability = self.Vulnerability(
                     vulnerability=pattern.vulnerability_name,
-                    sink=sink,
+                    sink= (sink, lineno),
                     labels={label}
                 )
                 self.vulnerabilities.append(vulnerability)
 
-    def as_output(self, source_line: int, sink_line: int, flow_type: str) -> List[Any]:
+    def as_output(self, source_line: int, flow_type: str) -> List[Any]:
         """Returns the vulnerabilities in the specified output format."""
         
         if not self.vulnerabilities:
@@ -72,7 +71,7 @@ class Vulnerabilities:
             output.append({
                 "vulnerability": [vulnerability.vulnerability],
                 "source": source,
-                "sink": [vulnerability.sink, sink_line],
+                "sink": [vulnerability.sink[0], vulnerability.sink[1]],
                 "flows": flows
             })
         return output

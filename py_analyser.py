@@ -1,36 +1,13 @@
 import argparse
-import ast
 import json
 import os
 import ast_utils
+import traverses_op
+
 from Pattern import Pattern
 from Policy import Policy
-from typing import Set
-
-
-def build_handlers(patterns):
-	"""Return a mapping of AST node types to actions.
-
-	Adjust the handlers to use `patterns` for vulnerability-specific logic.
-	"""
-
-	def on_assign(node: ast.Assign):
-		targets = [t.id for t in node.targets if isinstance(t, ast.Name)]
-		print(f"Assign to {targets} at line {node.lineno}")
-
-	def on_call(node: ast.Call):
-		func_name = None
-		if isinstance(node.func, ast.Name):
-			func_name = node.func.id
-		elif isinstance(node.func, ast.Attribute):
-			func_name = node.func.attr
-		if func_name:
-			print(f"Call to {func_name} at line {node.lineno}")
-
-	return {
-		ast.Assign: on_assign,
-		ast.Call: on_call,
-	}
+from MultiLabelling import MultiLabelling
+from Vulnerabilities import Vulnerabilities
 
 def main():
 	parser = argparse.ArgumentParser()
@@ -56,15 +33,20 @@ def main():
 		)
 		for p in patterns_data
 	]
- 
-	policy = Policy(patterns=list(patterns))
 
+	# ast_tree = ast_utils.python_to_ast_json(code)
 	ast_tree = ast_utils.python_to_ast(code)
 
-	print(policy)
- 
-	print(ast_utils.traverse_ast(ast_tree, 4, policy))
-		
+	ast_json = ast_utils.python_to_ast_json(code)
+	print(ast_json)
+
+	policy = Policy(patterns)
+	current_labelling = MultiLabelling(map={})
+	vulnerabilities = Vulnerabilities()
+
+	for stmt in ast_tree.body:
+		current_labelling = traverses_op.traverse_stmt(stmt, policy, current_labelling, vulnerabilities)
+
 	output_dir = os.path.join(os.getcwd(), "output")
 	os.makedirs(output_dir, exist_ok=True)
  
