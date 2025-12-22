@@ -71,19 +71,27 @@ class Policy:
         - The label has sources (information is flowing)
         - At least one source has no sanitizer from the pattern applied
         """
-        illegal_multilabel = MultiLabel(patterns=set())
-        
+        # Initialize an empty MultiLabel for illegal flows
+        illegal_multilabel = MultiLabel(patterns=set(multilabel.labels.keys()))  # Use existing patterns
+
         # Iterate through patterns in the multilabel
         for pattern, label in multilabel.labels.items():
             # Check if the sink_name is a sink for this pattern
             if sink_name in pattern.sinks:
+                # Ensure the pattern exists in the illegal_multilabel
+                if pattern not in illegal_multilabel.labels:
+                    illegal_multilabel.add_empty_pattern(pattern)
+
                 # Check if there's an illegal flow (any source not properly sanitized)
                 for source, sanitizers in label.flows.items():
                     # An illegal flow occurs if no sanitizer from the pattern has been applied
-                    # (either no sanitizers at all, or none of the pattern's sanitizers)
-                    
-                    # even tho that if there is a sanitizer its always going to be from the pattern
                     if not sanitizers or not sanitizers.intersection(pattern.sanitizers):
+                        # Add the source and its sanitizers to the illegal_multilabel
+                        illegal_multilabel.labels[pattern].add_source(source)
                         illegal_multilabel.labels[pattern].flows[source] = sanitizers.copy()
-        
+
+        # Return None if no illegal flows were found
+        if not any(illegal_multilabel.labels[pattern].flows for pattern in illegal_multilabel.labels):
+            return None
+
         return illegal_multilabel

@@ -94,7 +94,7 @@ def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling
     if func_name:
         # Distinguish between assigned and standalone calls
         if isinstance(parent, ast.Assign):
-            for vuln_name, pattern in policy.patterns.items():
+            for pattern in policy.patterns:
                 if pattern.is_source(func_name):
                     ml = MultiLabel(policy.patterns)
                     ml.add_source(func_name)
@@ -218,7 +218,7 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
     
     # Only evaluate the value being assigned, not the target
     target_ml = eval_expr(target, policy, multiLabelling, vulnerabilities)
-    value_ml = eval_expr(node.value, policy, multiLabelling, vulnerabilities)
+    value_ml = eval_expr(node.value, policy, multiLabelling, vulnerabilities, parent=node)
     
     combined_ml = value_ml.combinor(target_ml)
     
