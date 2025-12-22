@@ -105,7 +105,6 @@ def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling
                 arg_ml = eval_expr(arg, policy, multiLabelling, vulnerabilities, parent=node)
                 illegal_multilabel = Policy.detect_illegal_flows(func_name, arg_ml)
                 if illegal_multilabel:
-                    print("detected viulnerability")
                     lineno = getattr(node, "lineno", None)
                     vulnerabilities.add_vulnerability(func_name, arg_ml, lineno)
 
@@ -270,7 +269,6 @@ EXPR_DISPATCH = {
 
 def eval_expr(node: ast.AST, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None) -> MultiLabel:
     handler = EXPR_DISPATCH.get(type(node))
-    print(handler)
     if handler:
         # Check if the handler accepts a 'parent' parameter
         handler_signature = inspect.signature(handler)
