@@ -10,24 +10,6 @@ import traverses_op
 ######################
 
 # Simple dispatcher for expression evaluation
-EXPR_DISPATCH = {
-    ast.Name: traverses_op.traverse_Name,         # filled after function definitions
-    ast.Constant: traverses_op.traverse_Constant,
-    ast.UnaryOp: traverses_op.traverse_UnaryOp,
-    ast.BinOp: traverses_op.traverse_BinOp,
-    ast.BoolOp: traverses_op.traverse_BoolOp,
-    ast.Call: traverses_op.traverse_Call,
-    ast.Attribute: traverses_op.traverse_Attribute,
-    ast.Subscript: traverses_op.traverse_Subscript,
-    ast.Compare: traverses_op.traverse_Compare,
-}
-
-def eval_expr(node: ast.AST, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities) -> MultiLabel:
-    handler = EXPR_DISPATCH.get(type(node))
-    if handler:
-        return handler(node, policy, multiLabelling, vulnerabilities)
-    # Fallback: return an empty multilabel across policy patterns
-    return MultiLabel(policy.patterns)
 
 def traverse_Name(node: ast.Name, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities):
     """
@@ -257,3 +239,23 @@ def traverse_Expr(node: ast.Expr, policy: Policy, multiLabelling: MultiLabelling
     # TODO
 
     # Implement logic for handling ast.Expr nodes
+    
+EXPR_DISPATCH = {
+    ast.Name: traverse_Name,
+    ast.Constant: traverse_Constant,
+    ast.UnaryOp: traverse_UnaryOp,
+    ast.BinOp: traverse_BinOp,
+    ast.BoolOp: traverse_BoolOp,
+    ast.Call: traverse_Call,
+    ast.Attribute: traverse_Attribute,
+    ast.Subscript: traverse_Subscript,
+    ast.Compare: traverse_Compare,
+}
+
+def eval_expr(node: ast.AST, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities) -> MultiLabel:
+    handler = EXPR_DISPATCH.get(type(node))
+    if handler:
+        return handler(node, policy, multiLabelling, vulnerabilities)
+    # Fallback: return an empty multilabel across policy patterns
+    return MultiLabel(policy.patterns)
+    

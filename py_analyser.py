@@ -4,6 +4,8 @@ import json
 import os
 import ast_utils
 from Pattern import Pattern
+from Policy import Policy
+from typing import Set
 
 
 def build_handlers(patterns):
@@ -54,10 +56,14 @@ def main():
 		)
 		for p in patterns_data
 	]
+ 
+	policy = Policy(patterns=list(patterns))
 
 	ast_tree = ast_utils.python_to_ast(code)
 
-	print(ast_utils.traverse_ast(ast_tree))
+	print(policy)
+ 
+	print(ast_utils.traverse_ast(ast_tree, 4, policy))
 		
 	output_dir = os.path.join(os.getcwd(), "output")
 	os.makedirs(output_dir, exist_ok=True)

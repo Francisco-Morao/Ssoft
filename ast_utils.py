@@ -59,13 +59,13 @@ def traverse_ast(node: ast.AST, indent=0, Policy=None, MultiLabelling=None, Vuln
     what illegal flows are possibly hapening, and save those as detected vulnerabilities
     """
 
-    prefix = "  " * indent
+    prefix = " " * indent
     node_type = type(node).__name__
     lineno = getattr(node, "lineno", None)
 
-    label = eval_expr(node, Policy, MultiLabelling, Vulnerabilities) if isinstance(node, ast.expr) else None
-    extra = f" -> {label}" if label is not None else ""
-    print(f"{prefix}{node_type} (line {lineno}){extra}")
+    # label = eval_expr(node, Policy, MultiLabelling, Vulnerabilities) if isinstance(node, ast.expr) else None
+    # extra = f" -> {label}" if label is not None else ""
+    print(f"{prefix}{node_type} (line {lineno})")
 
     for child in ast.iter_child_nodes(node):
         traverse_ast(child, indent + 1, Policy, MultiLabelling, Vulnerabilities)

@@ -12,7 +12,7 @@
 # only assigns labels to patterns for which an illegal flow is taking place.
 
 from dataclasses import dataclass, field
-from typing import Set
+from typing import List, Set
 from Pattern import Pattern
 from MultiLabel import MultiLabel
 
@@ -21,7 +21,7 @@ class Policy:
     """
     
     """
-    patterns: Set[Pattern] = field(default_factory=set)
+    patterns: List[Pattern] = field(default_factory=list)
 
     def get_vulnerabilities_with_source(self, source_name: str) -> Set[str]:
         """

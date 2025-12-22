@@ -25,10 +25,10 @@
 # is the line number of where it appears in the code (if no sanitition occurs then the list is empty).
 
 
-from PROJ.Policy import Policy
+from Policy import Policy
 from typing import List, Any, Set
-from PROJ.MultiLabel import MultiLabel
-from PROJ.Label import Label
+from MultiLabel import MultiLabel
+from Label import Label
 from dataclasses import dataclass, field
 
 @dataclass
