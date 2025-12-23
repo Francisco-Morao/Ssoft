@@ -57,28 +57,17 @@ def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling
     ml = MultiLabel(policy.patterns)
 
     if func_name:
-        # Assignment context: x = func(args)
-        if isinstance(parent, ast.Assign):
-            lineno = getattr(node, "lineno", None)
-            # Evaluate args and combine their multilabels
-            for arg in node.args:
-                arg_ml = eval_expr(arg, policy, multiLabelling, vulnerabilities)
-                ml = ml.combinor(arg_ml)
-            ml.add_source(func_name, lineno)
-            ml.add_sanitizer_to_all(func_name, lineno)
-
-        # Standalone call context: func(args)
-        elif isinstance(parent, ast.Expr):
-            # Check if it's a sink - detect illegal flows
-            for arg in node.args:
-                arg_ml = eval_expr(arg, policy, multiLabelling, vulnerabilities)
-                ml = ml.combinor(arg_ml)
-                illegal_multilabel = policy.detect_illegal_flows(func_name, ml)
-                if illegal_multilabel:
-                    lineno = getattr(node, "lineno", None)
-                    vulnerabilities.add_vulnerability(func_name, ml, lineno)
-                # Combine args
-            #TODO: can sanitizers be called standalone? 
+        lineno = getattr(node, "lineno", None)
+        # Evaluate args and combine their multilabels
+        for arg in node.args:
+            arg_ml = eval_expr(arg, policy, multiLabelling, vulnerabilities)
+            ml = ml.combinor(arg_ml)
+            illegal_ml = add_detect_illegal_flows(node, func_name, ml, policy, vulnerabilities, lineno)
+            if illegal_ml:
+                return illegal_ml
+        ml.add_source(func_name, lineno)
+        logger(f"Add sanitizer to all for ML: {ml}", "traverse_Call")
+        # TODO: add sanitizer to sources of args and part dos sinks
 
     return ml
 
@@ -86,13 +75,9 @@ def traverse_UnaryOp(node: ast.UnaryOp, policy: Policy, multiLabelling: MultiLab
     """
     Handles traversal of ast.UnaryOp nodes.
     """
-    
     # UnaryOp(unaryop op, expr operand)
-    
-    # Evaluate operand and return its multilabel (unary ops don't change labels)
+    # Simply evaluate the operand and return its multilabel
     return eval_expr(node.operand, policy, multiLabelling, vulnerabilities)
-    
-    
 
 def traverse_BoolOp(node: ast.BoolOp, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities) -> MultiLabel:
     """
@@ -124,7 +109,13 @@ def traverse_BinOp(node: ast.BinOp, policy: Policy, multiLabelling: MultiLabelli
     # Combine multilabels from left and right expressions
     left_ml = eval_expr(node.left, policy, multiLabelling, vulnerabilities)
     right_ml = eval_expr(node.right, policy, multiLabelling, vulnerabilities)
-    return left_ml.combinor(right_ml)
+    
+    combinored_ml = left_ml.combinor(right_ml)
+    
+    
+    #check taint
+    
+    return combinored_ml
 
 def traverse_Compare(node: ast.Compare, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities) -> MultiLabel:     
     """
@@ -190,13 +181,11 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
     for target in node.targets:
         if isinstance(target, ast.Name):
             multiLabelling.mutator(target.id, combined_ml)
-            
-    illegal_multilabel = policy.detect_illegal_flows(target.id, combined_ml)
+        
+    illegal_multilabel = add_detect_illegal_flows(node, target.id, combined_ml, policy, vulnerabilities, lineno)
     if illegal_multilabel:
-        vulnerabilities.add_vulnerability(target.id, illegal_multilabel, lineno)
         multiLabelling.mutator(target.id, illegal_multilabel)
-        return multiLabelling
-    
+
     return multiLabelling
 
 def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities) -> MultiLabelling:    
@@ -239,7 +228,7 @@ def eval_expr(node: ast.AST, policy: Policy, multiLabelling: MultiLabelling, vul
         ast.Attribute: traverse_Attribute,
         ast.Subscript: traverse_Subscript,
         ast.Compare: traverse_Compare,
-    }
+    }    
     handler = EXPR_DISPATCH.get(type(node))
     if handler:
         # Check if the handler accepts a 'parent' parameter
@@ -277,4 +266,14 @@ def logger(message: str, function_name: str = "") -> None:
     """
     Simple logger function for debugging.
     """
-    print(f"[traverses_op] {function_name}: {message}")
+    print(f"[traverses_op] {function_name}:")
+    color_red = "\033[91m"
+    color_end = "\033[0m"
+    print(f"{color_red}{message}{color_end}")
+
+def add_detect_illegal_flows(node: ast.AST ,func_name: str, ml: MultiLabel, policy: Policy, vulnerabilities: Vulnerabilities, lineno: int) -> MultiLabel:
+    illegal_multilabel = policy.detect_illegal_flows(func_name, ml)
+    if illegal_multilabel:
+        lineno = getattr(node, "lineno", None)
+        vulnerabilities.add_vulnerability(func_name, ml, lineno)
+    return illegal_multilabel

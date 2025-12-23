@@ -60,7 +60,7 @@ class Policy:
 
         return vulnerabilities
     
-    #TODO: implement properly
+    # TODO: implement properly
     def detect_illegal_flows(self, sink_name: str, multilabel: MultiLabel) -> MultiLabel:
         """
         Given a sink name and a MultiLabel, returns a new MultiLabel that only includes labels
@@ -71,24 +71,20 @@ class Policy:
         - The label has sources (information is flowing)
         - At least one source has no sanitizer from the pattern applied
         """
-        illegal_multilabel = MultiLabel(self.patterns)  # Use existing patterns
+        illegal_multilabel = MultiLabel(self.patterns)
 
         # Iterate through patterns in the multilabel
         for pattern, label in multilabel.labels.items():
             # Check if the sink_name is a sink for this pattern
-            if sink_name in pattern.sinks:
-                # Ensure the pattern exists in the illegal_multilabel
-                if pattern not in illegal_multilabel.labels:
-                    illegal_multilabel.add_empty_pattern(pattern)
-
-                # Check if there's an illegal flow (any source not properly sanitized)
+            if sink_name in pattern.sinks: #há flow
+                # Check if there's a flow from a source to a sink
                 for source, sanitizers in label.flows.items():
-                    # An illegal flow occurs if no sanitizer from the pattern has been applied
-                    if not sanitizers or not sanitizers.intersection(pattern.sanitizers):
-                        # Add the source and its sanitizers to the illegal_multilabel
+                    #check if source and sanitizers are in the pattern
+                    if pattern.is_source(source[0]):
                         illegal_multilabel.labels[pattern].add_source(source[0], source[1])
+                    if pattern.is_sanitizer(source[0]):
                         illegal_multilabel.labels[pattern].flows[source] = sanitizers.copy()
-
+                
         # Return None if no illegal flows were found
         if not any(illegal_multilabel.labels[pattern].flows for pattern in illegal_multilabel.labels):
             return None
