@@ -103,18 +103,17 @@ def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling
             ml.add_source(func_name, lineno)
             ml.add_sanitizer_to_all(func_name, lineno)
 
-            
         # Standalone call context: func(args)
         elif isinstance(parent, ast.Expr):
             # Check if it's a sink - detect illegal flows
             for arg in node.args:
                 arg_ml = eval_expr(arg, policy, multiLabelling, vulnerabilities)
+                ml = ml.combinor(arg_ml)
                 illegal_multilabel = policy.detect_illegal_flows(func_name, ml)
-            if illegal_multilabel:
-                lineno = getattr(node, "lineno", None)
-                vulnerabilities.add_vulnerability(func_name, ml, lineno)
-            # Combine args
-            ml = ml.combinor(arg_ml)
+                if illegal_multilabel:
+                    lineno = getattr(node, "lineno", None)
+                    vulnerabilities.add_vulnerability(func_name, ml, lineno)
+                # Combine args
             #TODO: can sanitizers be called standalone? 
 
     return ml
