@@ -59,43 +59,47 @@ class Vulnerabilities:
         if not self.vulnerabilities:
             return ["none"]
 
-        output = []
+        # Group flows by (vulnerability_name, source, sink)
+        grouped = {}
         
-        # Dictionary to track counters for each vulnerability type
-        vulnerability_counters = {}
-
         for vulnerability in self.vulnerabilities:
-            # Get or initialize counter for this vulnerability type
             vuln_name = vulnerability.vulnerability
+            sink = vulnerability.sink
+            
+            for label in vulnerability.labels:
+                for source_tuple, sanitizers_frozenset in label.flows:
+                    # Create a key for grouping
+                    key = (vuln_name, source_tuple, sink)
+                    
+                    if key not in grouped:
+                        grouped[key] = []
+                    
+                    # Convert sanitizers frozenset to list
+                    sanitizers_list = [[s[0], s[1]] for s in sanitizers_frozenset]
+                    print(f"Sanitizers tuples for source {source_tuple}: {sanitizers_frozenset}")
+                    
+                    # Add this flow to the group
+                    grouped[key].append([flow_type, sanitizers_list])
+        
+        # Build output with grouped flows
+        output = []
+        vulnerability_counters = {}
+        
+        for (vuln_name, source_tuple, sink), flows in grouped.items():
+            # Get or initialize counter for this vulnerability type
             if vuln_name not in vulnerability_counters:
                 vulnerability_counters[vuln_name] = 1
             
-            # Each label represents one source with its sanitizers
-            for label in vulnerability.labels:
-                # Each source in the label.flows represents a different flow path
-                for source_tuple, sanitizers_tuples in label.flows.items():
-                    # Convert sanitizers set to list of [sanitizer_name, line_number] pairs
-
-                    sanitizers_list = []
-                    print (f"Sanitizers tuples for source {source_tuple}: {sanitizers_tuples}")
-                    for sanitizer in sanitizers_tuples:
-                        sanitizers_list.append([sanitizer[0], sanitizer[1]])
-
-                    # Build the flow entry
-                    flows = [[flow_type, sanitizers_list]]
-
-                    # Create vulnerability name with counter
-                    numbered_vuln = f"{vuln_name}_{vulnerability_counters[vuln_name]}"
-
-                    output.append({
-                        "vulnerability": numbered_vuln,
-                        "source": [source_tuple[0], source_tuple[1]],
-                        "sink": [vulnerability.sink[0], vulnerability.sink[1]],
-                        "flows": flows
-                    })
-                    
-                    # Increment counter for this vulnerability type
-                    vulnerability_counters[vuln_name] += 1
+            numbered_vuln = f"{vuln_name}_{vulnerability_counters[vuln_name]}"
+            
+            output.append({
+                "vulnerability": numbered_vuln,
+                "source": [source_tuple[0], source_tuple[1]],
+                "sink": [sink[0], sink[1]],
+                "flows": flows
+            })
+            
+            vulnerability_counters[vuln_name] += 1
         
         return output
 

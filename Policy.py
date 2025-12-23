@@ -90,13 +90,18 @@ class Policy:
             # Check if the sink_name is a sink for this pattern
             if sink_name in pattern.sinks: #há flow
                 # Check if there's a flow from a source to a sink
-                for source, sanitizers in label.flows.items():
-                    #check if source and sanitizers are in the pattern
-                    if pattern.is_source(source[0]):
-                        illegal_multilabel.labels[pattern].add_source(source[0], source[1])
-                        for sanitizer in sanitizers:
-                            if pattern.is_sanitizer(sanitizer[0]):
-                                illegal_multilabel.labels[pattern].add_sanitizer(sanitizer[0], sanitizer[1])
+                for source, sanitizers in label.flows:
+                    # Accept all sources in the label (including undefined variables treated as sources)
+                    # Only filter out if the source is explicitly listed as a sink (not a source of taint)
+                    # Actually, we should include all flows - the label already has the right flows
+                    illegal_multilabel.labels[pattern].flows.append((source, frozenset()))
+                    # Find the corresponding flow in illegal_multilabel and update its sanitizers
+                    idx = len(illegal_multilabel.labels[pattern].flows) - 1
+                    updated_sanitizers = set()
+                    for sanitizer in sanitizers:
+                        if pattern.is_sanitizer(sanitizer[0]):
+                            updated_sanitizers.add(sanitizer)
+                    illegal_multilabel.labels[pattern].flows[idx] = (source, frozenset(updated_sanitizers))
                 
         # Return None if no illegal flows were found
         if not any(illegal_multilabel.labels[pattern].flows for pattern in illegal_multilabel.labels):

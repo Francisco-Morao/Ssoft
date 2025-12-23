@@ -17,7 +17,7 @@
 # the original ones.
 
 from dataclasses import dataclass, field
-from typing import Dict, Set, Tuple
+from typing import Dict, Set, Tuple, FrozenSet, List
 
 
 @dataclass
@@ -27,39 +27,40 @@ class Label:
     # it might be influenced by a same source in different ways
     # source -> sanitizers
 
-    # key      the name of the source and the lineno where it is called
-    # value    name of the sanitizers applied to information of that source 
-    # sets, unlike lists or tuples, cannot have multiple occurrences of the same element and store unordered values.
-    flows: Dict[Tuple[str, int], Set[Tuple[str, int]]] = field(default_factory=dict)
-    # a cada source pode estar associado um conjunto de sanitizers
+    # Changed structure to support multiple flows from the same source with different sanitizers
+    # Each flow is represented as (source, frozenset of sanitizers) to allow for distinct paths
+    flows: List[Tuple[Tuple[str, int], FrozenSet[Tuple[str, int]]]] = field(default_factory=list)
+    # Each source can have multiple flows with different sanitizer sets
 
     def add_source(self, source: str, lineno):
-        """Add a source to the label."""
-        
-        Tuple_key = (source, lineno)
-        
-        if Tuple_key not in self.flows:
-            self.flows[Tuple_key] = set()
-            #empty set of sanitizers for the new source        
+        """Add a source to the label as a new flow with no sanitizers."""
+        flow = ((source, lineno), frozenset())
+        if flow not in self.flows:
+            self.flows.append(flow)        
 
     def add_sanitizer(self, sanitizer: str, lineno: int) -> None:
         """Add a sanitizer to all existing flows."""
-        for source_key in self.flows.keys():
-            print(f"Adding sanitizer '{sanitizer}' to source '{source_key}'")
-            self.flows[source_key].add((sanitizer, lineno))
+        new_flows = []
+        for source, sanitizers in self.flows:
+            print(f"Adding sanitizer '{sanitizer}' to source '{source}'")
+            new_sanitizers = frozenset(sanitizers | {(sanitizer, lineno)})
+            new_flows.append((source, new_sanitizers))
+        self.flows = new_flows
 
     def combinor(self, other: "Label") -> "Label":
         """ New label that represents the integrity of information that results from combining two pieces of information. """
-        """ For the same source in both labels, combine their sanitizers. """
+        """ Includes all flows from both labels, preserving distinct sanitization paths. """
 
         new_label = Label()
-
-        for source in set(self.flows.keys()).union(other.flows.keys()):
-            # get all sources from both labels
-            sanitizers_self = self.flows.get(source, set())
-            sanitizers_other = other.flows.get(source, set())
-            combined_sanitizers = sanitizers_self.union(sanitizers_other)
-            # add the combined sanitizers for
-            new_label.flows[source] = combined_sanitizers
+        
+        # Add all flows from self
+        for flow in self.flows:
+            if flow not in new_label.flows:
+                new_label.flows.append(flow)
+        
+        # Add all flows from other
+        for flow in other.flows:
+            if flow not in new_label.flows:
+                new_label.flows.append(flow)
 
         return new_label

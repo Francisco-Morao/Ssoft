@@ -27,32 +27,45 @@ def traverse_Name(node: ast.Name, policy: Policy, multiLabelling: MultiLabelling
         
         for pattern, label in multilabel.labels.items():
             new_label = Label()
-            for src, sanitizers in label.flows.items():
+            for src, sanitizers in label.flows:
                 if src[0] == node.id:
-                    new_label.flows[(src[0], lineno)] = sanitizers.copy()
+                    new_label.flows.append(((src[0], lineno), sanitizers))
                 else:
-                    new_label.flows[src] = sanitizers.copy()
+                    new_label.flows.append((src, sanitizers))
             
             new_multilabel.labels[pattern] = new_label
+        
+        # Check if this variable name is also a source in the patterns
+        for pattern in policy.patterns:
+            if pattern.is_source(node.id):
+                if pattern not in new_multilabel.labels:
+                    new_multilabel.labels[pattern] = Label()
+                # Add as a new flow with no sanitizers
+                flow = ((node.id, lineno), frozenset())
+                if flow not in new_multilabel.labels[pattern].flows:
+                    new_multilabel.labels[pattern].flows.append(flow)
         
         return new_multilabel
     except KeyError:
         # Handle the case where the variable name does not exist
+        # Undefined variables are treated as potential sources (conservative approach)
+        lineno = getattr(node, "lineno", None)
+        multilabel = MultiLabel(policy.patterns)
         
-        # check if it is a source or sanitizer function
-        label = None
+        print("traverse_Name: checking", node.id)
+        
+        is_source_in_any_pattern = False
         for pattern in policy.patterns:
             if pattern.is_source(node.id):
-                label = Label(flows={(node.id, None): set()})
-                break
+                multilabel.labels[pattern] = Label(flows=[((node.id, lineno), frozenset())])
+                is_source_in_any_pattern = True
+        
+        # If not explicitly a source, treat undefined variables as potential sources for all patterns
+        if not is_source_in_any_pattern:
+            for pattern in policy.patterns:
+                multilabel.labels[pattern] = Label(flows=[((node.id, lineno), frozenset())])
 
-        if parent and isinstance(parent, ast.Call):
-            lineno = getattr(node, "lineno", None)
-            label = Label(flows={(node.id, lineno): set()})
-            
-            policy.add_pattern(node.id)
-
-        return MultiLabel(policy.patterns, label = label)  
+        return multilabel  
 
 
 def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None) -> MultiLabel:
@@ -182,18 +195,15 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
     lineno = getattr(node, "lineno", None)
     
     # Only evaluate the value being assigned, not the target
-    target_ml = eval_expr(target, policy, multiLabelling, vulnerabilities, node)
     value_ml = eval_expr(node.value, policy, multiLabelling, vulnerabilities, node)
-    
-    combined_ml = value_ml.combinor(target_ml)
     
     # Update multilabelling for each target
     for target in node.targets:
         if isinstance(target, ast.Name):
-            multiLabelling.mutator(target.id, combined_ml)
-            logger(f"Assigned ML {combined_ml} to variable '{target.id}'", "traverse_Assign")
+            multiLabelling.mutator(target.id, value_ml)
+            logger(f"Assigned ML {value_ml} to variable '{target.id}'", "traverse_Assign")
         
-    add_detect_illegal_flows(node, target.id, combined_ml, policy, vulnerabilities, lineno)
+    add_detect_illegal_flows(node, target.id, value_ml, policy, vulnerabilities, lineno)
 
     return multiLabelling
 
