@@ -156,6 +156,7 @@ def main():
     ignore_lines = False
     ignore_implicit = False
     ignore_sanitizers = False
+    verbose = False
     print()
     
     # Find all test slices
@@ -212,15 +213,18 @@ def main():
         success, error = run_analyzer(slice_path, patterns_path)
         
         if not success:
-            print(f"   ❌ Analysis failed: {error}")
-            validation_log.write(f"FAILED - {error}\n")
+            if verbose: #dont show error if not verbose
+                print(f"   ❌ Analysis failed: {error}")
+                validation_log.write(f"FAILED - {error}\n")
+            else:
+                print(f"   ❌ Analysis failed")
+                validation_log.write(f"FAILED\n")
             stats['analyzed_failed'] += 1
             print()
             continue
         
         print("   ✅ Analysis completed")
         validation_log.write("SUCCESS\n")
-        print("   ✅ Analysis completed")
         stats['analyzed_success'] += 1
         
         # Check if output was generated
@@ -234,7 +238,6 @@ def main():
         print(f"   📝 Output saved to: {generated_output_path}")
         validation_log.write(f"Output: {generated_output_path}\n")
         
-        print(f"   📝 Output saved to: {generated_output_path}")
         
         # Validate against expected output if it exists
         if expected_output_path:

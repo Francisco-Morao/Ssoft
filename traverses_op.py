@@ -26,14 +26,7 @@ def traverse_Name(node: ast.Name, policy: Policy, multiLabelling: MultiLabelling
         new_multilabel = MultiLabel(set(multilabel.labels.keys()))
         
         for pattern, label in multilabel.labels.items():
-            new_label = Label()
-            for src, sanitizers in label.flows:
-                if src[0] == node.id:
-                    new_label.flows.append(((src[0], lineno), sanitizers))
-                else:
-                    new_label.flows.append((src, sanitizers))
-            
-            new_multilabel.labels[pattern] = new_label
+            new_multilabel.labels[pattern] = label.copy_with_updated_lines(node.id, lineno)
         
         # Check if this variable name is also a source in the patterns
         for pattern in policy.patterns:
@@ -41,9 +34,7 @@ def traverse_Name(node: ast.Name, policy: Policy, multiLabelling: MultiLabelling
                 if pattern not in new_multilabel.labels:
                     new_multilabel.labels[pattern] = Label()
                 # Add as a new flow with no sanitizers
-                flow = ((node.id, lineno), frozenset())
-                if flow not in new_multilabel.labels[pattern].flows:
-                    new_multilabel.labels[pattern].flows.append(flow)
+                new_multilabel.labels[pattern].add_flow(node.id, lineno)
         
         return new_multilabel
     except KeyError:
@@ -57,13 +48,15 @@ def traverse_Name(node: ast.Name, policy: Policy, multiLabelling: MultiLabelling
         is_source_in_any_pattern = False
         for pattern in policy.patterns:
             if pattern.is_source(node.id):
-                multilabel.labels[pattern] = Label(flows=[((node.id, lineno), frozenset())])
+                multilabel.labels[pattern] = Label()
+                multilabel.labels[pattern].add_flow(node.id, lineno)
                 is_source_in_any_pattern = True
         
         # If not explicitly a source, treat undefined variables as potential sources for all patterns
         if not is_source_in_any_pattern:
             for pattern in policy.patterns:
-                multilabel.labels[pattern] = Label(flows=[((node.id, lineno), frozenset())])
+                multilabel.labels[pattern] = Label()
+                multilabel.labels[pattern].add_flow(node.id, lineno)
 
         return multilabel  
 

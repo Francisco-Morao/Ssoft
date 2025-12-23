@@ -64,3 +64,25 @@ class Label:
                 new_label.flows.append(flow)
 
         return new_label
+
+    def copy_with_updated_lines(self, source_name: str, new_lineno: int) -> "Label":
+        """Create a copy of this label, updating line numbers for flows matching source_name.
+         Used when traversing AST nodes to set correct line numbers."""
+        new_label = Label()
+        for src, sanitizers in self.flows:
+            if src[0] == source_name:
+                # Update the line number for this source
+                new_label.flows.append(((src[0], new_lineno), sanitizers))
+            else:
+                # Keep the original flow as-is
+                new_label.flows.append((src, sanitizers))
+        return new_label
+
+    def add_flow(self, source: str, lineno: int, sanitizers: FrozenSet[Tuple[str, int]] = None) -> None:
+        """Add a flow to the label. If the flow already exists, it won't be duplicated."""
+        if sanitizers is None:
+            sanitizers = frozenset()
+        flow = ((source, lineno), sanitizers)
+        if flow not in self.flows:
+            self.flows.append(flow)
+    
