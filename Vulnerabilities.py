@@ -45,12 +45,12 @@ class Vulnerabilities:
     def add_vulnerability(self, sink: str, multilabel: MultiLabel, sink_lineno: int) -> None:
         """Given a multilabel and a sink name, saves the illegal flows in the vulnerabilities list."""
         for pattern, label in multilabel.labels.items():
-            if pattern.is_sink(sink):
-                vulnerability = self.Vulnerability(
+            vulnerability = self.Vulnerability(
                     vulnerability=pattern.vulnerability_name,
                     sink= (sink, sink_lineno),
                     labels=[label]
                 )
+            if self.check_repetition(vulnerability) is False:
                 self.vulnerabilities.append(vulnerability)
 
     def check_repetition(self, vulnerability: 'Vulnerabilities.Vulnerability') -> bool:

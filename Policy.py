@@ -60,6 +60,14 @@ class Policy:
 
         return vulnerabilities
     
+    def add_pattern(self, pattern_str: str) -> None:
+        new_patterns = list()
+        for pattern in self.patterns:
+            new_pattern = pattern.add_source(pattern_str)
+            new_patterns.append(new_pattern)
+
+        self.patterns = new_patterns
+
     # TODO: implement properly
     def detect_illegal_flows(self, sink_name: str, multilabel: MultiLabel) -> MultiLabel:
         """
@@ -71,7 +79,7 @@ class Policy:
         - The label has sources (information is flowing)
         - At least one source has no sanitizer from the pattern applied
         """
-        illegal_multilabel = MultiLabel(self.patterns)
+        illegal_multilabel = MultiLabel(set())
 
         # Iterate through patterns in the multilabel
         for pattern, label in multilabel.labels.items():
@@ -80,16 +88,11 @@ class Policy:
                 # Check if there's a flow from a source to a sink
                 for source, sanitizers in label.flows.items():
                     #check if source and sanitizers are in the pattern
-                    print("Checking illegal flow with sink:", sink_name)
-                    print(f"Checking pattern {pattern.vulnerability_name} for source {source[0]} with sanitizers {sanitizers}")
                     if pattern.is_source(source[0]):
-                        print("Detected source in pattern for illegal flow check!!!!.")
-                        print(f"Source {source[0]} is valid for pattern {pattern.vulnerability_name}")
+                        illegal_multilabel.add_empty_pattern(pattern)
                         illegal_multilabel.labels[pattern].add_source(source[0], source[1])
-                    print(f"Checking sanitizers {sanitizers} for pattern {pattern.vulnerability_name}")
                     for sanitizer in sanitizers:
                         if pattern.is_sanitizer(sanitizer):
-                            print(f"Sanitizer {sanitizer} is valid for pattern {pattern.vulnerability_name}")
                             illegal_multilabel.labels[pattern].add_sanitizer(sanitizer, source[1])
                 
         # Return None if no illegal flows were found

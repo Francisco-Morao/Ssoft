@@ -36,9 +36,19 @@ class Pattern:
         return item in self.sources
 
     def is_sanitizer(self, item: str) -> bool:
-        print(f"Checking if '{item}' is a sanitizer in {self.sanitizers}")
-        print(f"BOOL: {item in self.sanitizers}")
         return item in self.sanitizers
 
     def is_sink(self, item: str) -> bool:
         return item in self.sinks
+    
+    def add_source(self, source: str) -> 'Pattern':
+        """Returns a new Pattern with the given source added."""
+        new_sources = set(self.sources)
+        new_sources.add(source)
+        return Pattern(
+            vulnerability_name=self.vulnerability_name,
+            sources=new_sources,
+            sinks=self.sinks,
+            sanitizers=self.sanitizers
+        )
+

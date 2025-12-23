@@ -47,8 +47,6 @@ class Label:
         for source_key in self.flows.keys():
             print(f"Adding sanitizer '{sanitizer}' to source '{source_key}'")
             self.flows[source_key].add((sanitizer, lineno))
-            
-            print(f"Current sanitizers for source '{source_key}': {self.flows[source_key]}")
 
     def combinor(self, other: "Label") -> "Label":
         """ New label that represents the integrity of information that results from combining two pieces of information. """
