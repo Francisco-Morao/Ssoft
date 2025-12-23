@@ -29,10 +29,13 @@ class MultiLabel:
 
     labels: Dict[Pattern, Label]
 
-    def __init__(self, patterns: Set[Pattern]):
+    def __init__(self, patterns: Set[Pattern], label: Label = None):
         self.labels = dict()
         for pattern in patterns:
-            self.labels[pattern] = Label()
+            if label is None:
+                self.labels[pattern] = Label()
+            else:
+                self.labels[pattern] = label
 
     def get_label(self, pattern: Pattern) -> Label:
         """Return the Label assigned to the given pattern."""
