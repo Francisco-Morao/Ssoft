@@ -62,9 +62,7 @@ def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling
         for arg in node.args:
             arg_ml = eval_expr(arg, policy, multiLabelling, vulnerabilities)
             ml = ml.combinor(arg_ml)
-            illegal_ml = add_detect_illegal_flows(node, func_name, ml, policy, vulnerabilities, lineno)
-            if illegal_ml:
-                return illegal_ml
+            add_detect_illegal_flows(node, func_name, ml, policy, vulnerabilities, lineno)
         ml.add_source(func_name, lineno)
         logger(f"Add sanitizer to all for ML: {ml}", "traverse_Call")
         # TODO: add sanitizer to sources of args and part dos sinks
@@ -181,10 +179,9 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
     for target in node.targets:
         if isinstance(target, ast.Name):
             multiLabelling.mutator(target.id, combined_ml)
+            logger(f"Assigned ML {combined_ml} to variable '{target.id}'", "traverse_Assign")
         
-    illegal_multilabel = add_detect_illegal_flows(node, target.id, combined_ml, policy, vulnerabilities, lineno)
-    if illegal_multilabel:
-        multiLabelling.mutator(target.id, illegal_multilabel)
+    add_detect_illegal_flows(node, target.id, combined_ml, policy, vulnerabilities, lineno)
 
     return multiLabelling
 
@@ -262,18 +259,22 @@ def traverse_stmt(node: ast.stmt, policy: Policy, multiLabelling: MultiLabelling
         return multiLabelling
     
 
-def logger(message: str, function_name: str = "") -> None:
+def logger(message: str, function_name: str = "", color: int = 1) -> None:
     """
     Simple logger function for debugging.
     """
     print(f"[traverses_op] {function_name}:")
-    color_red = "\033[91m"
+    if color == 1:  # Green
+        color = "\033[92m"
+    elif color == 2:  # Red
+        color = "\033[91m"
     color_end = "\033[0m"
-    print(f"{color_red}{message}{color_end}")
+    print(f"{color}{message}{color_end}")
 
 def add_detect_illegal_flows(node: ast.AST ,func_name: str, ml: MultiLabel, policy: Policy, vulnerabilities: Vulnerabilities, lineno: int) -> MultiLabel:
     illegal_multilabel = policy.detect_illegal_flows(func_name, ml)
+    logger(f"Checking illegal flows for sink '{func_name}' with ML: {ml}. Illegal ML: {illegal_multilabel}", "add_detect_illegal_flows", color=2)
     if illegal_multilabel:
         lineno = getattr(node, "lineno", None)
-        vulnerabilities.add_vulnerability(func_name, ml, lineno)
+        vulnerabilities.add_vulnerability(func_name, illegal_multilabel, lineno)
     return illegal_multilabel
