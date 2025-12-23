@@ -46,7 +46,6 @@ def traverse_Name(node: ast.Name, policy: Policy, multiLabelling: MultiLabelling
         if parent and isinstance(parent, ast.Call):
             lineno = getattr(node, "lineno", None)
             label = Label(flows={(node.id, lineno): set()})
-            
             policy.add_pattern(node.id)
 
         return MultiLabel(policy.patterns, label = label)
@@ -72,10 +71,7 @@ def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling
         ml.add_source(func_name, lineno)
         
         # Add as sanitizer only to existing flows from sources
-        ml.add_sanitizer(func_name, lineno)
-        
-        for label in ml.labels.values():
-            print(f"After processing Call to '{func_name}', label is: {label}")        
+        ml.add_sanitizer(func_name, lineno)    
     return ml
 
 def traverse_UnaryOp(node: ast.UnaryOp, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None) -> MultiLabel:

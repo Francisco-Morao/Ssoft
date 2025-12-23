@@ -91,9 +91,9 @@ class Policy:
                     if pattern.is_source(source[0]):
                         illegal_multilabel.add_empty_pattern(pattern)
                         illegal_multilabel.labels[pattern].add_source(source[0], source[1])
-                    for sanitizer in sanitizers:
-                        if pattern.is_sanitizer(sanitizer):
-                            illegal_multilabel.labels[pattern].add_sanitizer(sanitizer, source[1])
+                        for sanitizer in sanitizers:
+                            if pattern.is_sanitizer(sanitizer[0]):
+                                illegal_multilabel.labels[pattern].add_sanitizer(sanitizer[0], sanitizer[1])
                 
         # Return None if no illegal flows were found
         if not any(illegal_multilabel.labels[pattern].flows for pattern in illegal_multilabel.labels):

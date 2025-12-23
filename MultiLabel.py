@@ -54,8 +54,6 @@ class MultiLabel:
             if pattern.is_sanitizer(sanitizer_name):
                 # Only add to flows where there is a source (information is flowing)
                 label.add_sanitizer(sanitizer_name, lineno)
-                
-                print(f"After adding sanitizer '{sanitizer_name}' to pattern '{pattern.vulnerability_name}', label is: {label}")
 
     def add_sanitizer_to_all(self, sanitizer_name: str, lineno: int) -> None:
         """Add a sanitizer to the appropriate labels. Regardless of source.

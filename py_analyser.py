@@ -46,7 +46,7 @@ def main():
 
 	for stmt in ast_tree.body:
 		current_labelling = traverses_op.traverse_stmt(stmt, policy, current_labelling, vulnerabilities)
-		
+	 
 	output_dir = os.path.join(os.getcwd(), "output")
 	os.makedirs(output_dir, exist_ok=True)
  

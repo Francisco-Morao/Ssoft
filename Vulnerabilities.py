@@ -25,7 +25,7 @@
 # is the line number of where it appears in the code (if no sanitition occurs then the list is empty).
 
 
-from typing import List, Set, Tuple, Any
+from typing import List, Tuple, Any
 from MultiLabel import MultiLabel
 from Label import Label
 from dataclasses import dataclass, field
@@ -50,17 +50,8 @@ class Vulnerabilities:
                     sink= (sink, sink_lineno),
                     labels=[label]
                 )
-            if self.check_repetition(vulnerability) is False:
+            if pattern.is_sink(sink):
                 self.vulnerabilities.append(vulnerability)
-
-    def check_repetition(self, vulnerability: 'Vulnerabilities.Vulnerability') -> bool:
-        """Check if a vulnerability is already recorded."""
-        for existing_vuln in self.vulnerabilities:
-            if (existing_vuln.vulnerability == vulnerability.vulnerability and
-                existing_vuln.sink == vulnerability.sink and
-                existing_vuln.labels == vulnerability.labels):
-                return True
-        return False
 
     def as_output(self, flow_type: str) -> List[Any]:
         """Returns the vulnerabilities in the specified output format."""
@@ -84,13 +75,18 @@ class Vulnerabilities:
                 # Each source in the label.flows represents a different flow path
                 for source_tuple, sanitizers_tuples in label.flows.items():
                     # Convert sanitizers set to list of [sanitizer_name, line_number] pairs
-                    sanitizers_list = [[sanitizer[0], sanitizer[1]] for sanitizer in sanitizers_tuples]                     
+
+                    sanitizers_list = []
+                    print (f"Sanitizers tuples for source {source_tuple}: {sanitizers_tuples}")
+                    for sanitizer in sanitizers_tuples:
+                        sanitizers_list.append([sanitizer[0], sanitizer[1]])
+
                     # Build the flow entry
                     flows = [[flow_type, sanitizers_list]]
-                    
+
                     # Create vulnerability name with counter
                     numbered_vuln = f"{vuln_name}_{vulnerability_counters[vuln_name]}"
-                    
+
                     output.append({
                         "vulnerability": numbered_vuln,
                         "source": [source_tuple[0], source_tuple[1]],
