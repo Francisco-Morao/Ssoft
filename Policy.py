@@ -61,7 +61,7 @@ class Policy:
         return vulnerabilities
     
     #TODO: implement properly
-    def detect_illegal_flows(sink_name: str, multilabel: MultiLabel) -> MultiLabel:
+    def detect_illegal_flows(self, sink_name: str, multilabel: MultiLabel) -> MultiLabel:
         """
         Given a sink name and a MultiLabel, returns a new MultiLabel that only includes labels
         for patterns where an illegal flow is taking place to the given sink.
@@ -71,8 +71,7 @@ class Policy:
         - The label has sources (information is flowing)
         - At least one source has no sanitizer from the pattern applied
         """
-        # Initialize an empty MultiLabel for illegal flows
-        illegal_multilabel = MultiLabel(patterns=set(multilabel.labels.keys()))  # Use existing patterns
+        illegal_multilabel = MultiLabel(self.patterns)  # Use existing patterns
 
         # Iterate through patterns in the multilabel
         for pattern, label in multilabel.labels.items():

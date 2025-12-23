@@ -52,6 +52,13 @@ class MultiLabel:
             if pattern.is_sanitizer(sanitizer_name) and pattern.is_source(source_name):
                 label.add_sanitizer(source_name, lineno, sanitizer_name)
 
+    def add_sanitizer_to_all(self, sanitizer_name: str, lineno: int) -> None:
+        """Add a sanitizer to the appropriate labels. Regardless of source.
+        When adding a sanitizer, ensure it is only added to labels corresponding to patterns"""
+        for pattern, label in self.labels.items():
+            if pattern.is_sanitizer(sanitizer_name):
+                label.add_sanitizer_to_all(lineno, sanitizer_name)
+                
     def add_empty_pattern(self, pattern: Pattern) -> None:
         """Add a pattern with an empty label to the MultiLabel."""
         if pattern not in self.labels:
