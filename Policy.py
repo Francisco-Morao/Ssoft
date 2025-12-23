@@ -80,10 +80,17 @@ class Policy:
                 # Check if there's a flow from a source to a sink
                 for source, sanitizers in label.flows.items():
                     #check if source and sanitizers are in the pattern
+                    print("Checking illegal flow with sink:", sink_name)
+                    print(f"Checking pattern {pattern.vulnerability_name} for source {source[0]} with sanitizers {sanitizers}")
                     if pattern.is_source(source[0]):
+                        print("Detected source in pattern for illegal flow check!!!!.")
+                        print(f"Source {source[0]} is valid for pattern {pattern.vulnerability_name}")
                         illegal_multilabel.labels[pattern].add_source(source[0], source[1])
-                    if pattern.is_sanitizer(source[0]):
-                        illegal_multilabel.labels[pattern].flows[source] = sanitizers.copy()
+                    print(f"Checking sanitizers {sanitizers} for pattern {pattern.vulnerability_name}")
+                    for sanitizer in sanitizers:
+                        if pattern.is_sanitizer(sanitizer):
+                            print(f"Sanitizer {sanitizer} is valid for pattern {pattern.vulnerability_name}")
+                            illegal_multilabel.labels[pattern].add_sanitizer(sanitizer, source[1])
                 
         # Return None if no illegal flows were found
         if not any(illegal_multilabel.labels[pattern].flows for pattern in illegal_multilabel.labels):

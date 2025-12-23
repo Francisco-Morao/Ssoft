@@ -63,9 +63,15 @@ def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling
             arg_ml = eval_expr(arg, policy, multiLabelling, vulnerabilities)
             ml = ml.combinor(arg_ml)
             add_detect_illegal_flows(node, func_name, ml, policy, vulnerabilities, lineno)
+        
+        # Add as source if it's a source function
         ml.add_source(func_name, lineno)
-        logger(f"Add sanitizer to all for ML: {ml}", "traverse_Call")
-        # TODO: add sanitizer to sources of args and part dos sinks
+        
+        # Add as sanitizer only to existing flows from sources
+        ml.add_sanitizer(func_name, lineno)
+        
+        logger(f"Add sanitizer to existing flows for ML: {ml}", "traverse_Call")
+        
 
     return ml
 
@@ -137,6 +143,7 @@ def traverse_Attribute(node: ast.Attribute, policy: Policy, multiLabelling: Mult
     # Attribute(expr value, identifier attr, expr_context ctx)
     
     return eval_expr(node.value, policy, multiLabelling, vulnerabilities)
+
     
 def traverse_Subscript(node: ast.Subscript, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities) -> MultiLabel:
     """

@@ -36,6 +36,8 @@ class Pattern:
         return item in self.sources
 
     def is_sanitizer(self, item: str) -> bool:
+        print(f"Checking if '{item}' is a sanitizer in {self.sanitizers}")
+        print(f"BOOL: {item in self.sanitizers}")
         return item in self.sanitizers
 
     def is_sink(self, item: str) -> bool:

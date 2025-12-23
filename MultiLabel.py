@@ -48,12 +48,12 @@ class MultiLabel:
             if pattern.is_source(source_name):
                 label.add_source(source_name, lineno)
 
-    def add_sanitizer(self, source_name: str, lineno: int, sanitizer_name: str) -> None:
-        """"Add a sanitizer for a given source to the appropriate labels.
-        When adding a sanitizer, ensure it is only added to labels corresponding to patterns"""
+    def add_sanitizer(self, sanitizer_name: str, lineno: int) -> None:
+        """"Add a sanitizer to existing flows where both the source and sanitizer belong to the pattern."""
         for pattern, label in self.labels.items():
-            if pattern.is_sanitizer(sanitizer_name) and pattern.is_source(source_name):
-                label.add_sanitizer(source_name, lineno, sanitizer_name)
+            if pattern.is_sanitizer(sanitizer_name):
+                # Only add to flows where there is a source (information is flowing)
+                label.add_sanitizer(sanitizer_name, lineno)
 
     # def add_sanitizer_to_all(self, sanitizer_name: str, lineno: int) -> None:
     #     """Add a sanitizer to the appropriate labels. Regardless of source.

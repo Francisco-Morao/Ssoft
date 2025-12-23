@@ -45,6 +45,7 @@ def main():
 	vulnerabilities = Vulnerabilities()
 
 	for stmt in ast_tree.body:
+		# Traverse each statement in the AST
 		current_labelling = traverses_op.traverse_stmt(stmt, policy, current_labelling, vulnerabilities)
 
 	output_dir = os.path.join(os.getcwd(), "output")

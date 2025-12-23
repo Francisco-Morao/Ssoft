@@ -42,13 +42,11 @@ class Label:
             self.flows[Tuple_key] = set()
             #empty set of sanitizers for the new source        
 
-    def add_sanitizer(self, source: str, lineno: int, sanitizer: str):
-        """Add a sanitizer for a given source."""
-        Tuple_key = (source, lineno)
-        if Tuple_key in self.flows:
-            self.flows[Tuple_key].add(sanitizer)
-        else:
-            self.flows[Tuple_key] = {sanitizer}
+    def add_sanitizer(self, sanitizer: str, lineno: int) -> None:
+        """Add a sanitizer to all existing flows."""
+        for source_key in self.flows.keys():
+            print(f"Adding sanitizer '{sanitizer}' to source '{source_key}'")
+            self.flows[source_key].add(sanitizer)
 
     def combinor(self, other: "Label") -> "Label":
         """ New label that represents the integrity of information that results from combining two pieces of information. """
