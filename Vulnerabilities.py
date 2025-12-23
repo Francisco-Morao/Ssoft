@@ -49,10 +49,18 @@ class Vulnerabilities:
                 vulnerability = self.Vulnerability(
                     vulnerability=pattern.vulnerability_name,
                     sink= (sink, sink_lineno),
-                    # TODO: check this way of fetching correct label works
                     labels=[label]
                 )
                 self.vulnerabilities.append(vulnerability)
+
+    def check_repetition(self, vulnerability: 'Vulnerabilities.Vulnerability') -> bool:
+        """Check if a vulnerability is already recorded."""
+        for existing_vuln in self.vulnerabilities:
+            if (existing_vuln.vulnerability == vulnerability.vulnerability and
+                existing_vuln.sink == vulnerability.sink and
+                existing_vuln.labels == vulnerability.labels):
+                return True
+        return False
 
     def as_output(self, flow_type: str) -> List[Any]:
         """Returns the vulnerabilities in the specified output format."""
@@ -74,12 +82,11 @@ class Vulnerabilities:
             # Each label represents one source with its sanitizers
             for label in vulnerability.labels:
                 # Each source in the label.flows represents a different flow path
-                for source_tuple, sanitizers_set in label.flows.items():
+                for source_tuple, sanitizers_tuples in label.flows.items():
                     # Convert sanitizers set to list of [sanitizer_name, line_number] pairs
-                    sanitizations = []  # Empty list if no sanitizers
-                    
+                    sanitizers_list = [[sanitizer[0], sanitizer[1]] for sanitizer in sanitizers_tuples]                     
                     # Build the flow entry
-                    flows = [[flow_type, sanitizations]]
+                    flows = [[flow_type, sanitizers_list]]
                     
                     # Create vulnerability name with counter
                     numbered_vuln = f"{vuln_name}_{vulnerability_counters[vuln_name]}"

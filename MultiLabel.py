@@ -54,13 +54,15 @@ class MultiLabel:
             if pattern.is_sanitizer(sanitizer_name):
                 # Only add to flows where there is a source (information is flowing)
                 label.add_sanitizer(sanitizer_name, lineno)
+                
+                print(f"After adding sanitizer '{sanitizer_name}' to pattern '{pattern.vulnerability_name}', label is: {label}")
 
-    # def add_sanitizer_to_all(self, sanitizer_name: str, lineno: int) -> None:
-    #     """Add a sanitizer to the appropriate labels. Regardless of source.
-    #     When adding a sanitizer, ensure it is only added to labels corresponding to patterns"""
-    #     for pattern, label in self.labels.items():
-    #         if pattern.is_sanitizer(sanitizer_name):
-    #             label.add_sanitizer_to_all(sanitizer_name, lineno)
+    def add_sanitizer_to_all(self, sanitizer_name: str, lineno: int) -> None:
+        """Add a sanitizer to the appropriate labels. Regardless of source.
+        When adding a sanitizer, ensure it is only added to labels corresponding to patterns"""
+        for pattern, label in self.labels.items():
+            if pattern.is_sanitizer(sanitizer_name):
+                label.add_sanitizer_to_all(sanitizer_name, lineno)
                 
     def add_empty_pattern(self, pattern: Pattern) -> None:
         """Add a pattern with an empty label to the MultiLabel."""

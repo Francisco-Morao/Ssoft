@@ -30,7 +30,7 @@ class Label:
     # key      the name of the source and the lineno where it is called
     # value    name of the sanitizers applied to information of that source 
     # sets, unlike lists or tuples, cannot have multiple occurrences of the same element and store unordered values.
-    flows: Dict[Tuple[str, int], Set[str]] = field(default_factory=dict)
+    flows: Dict[Tuple[str, int], Set[Tuple[str, int]]] = field(default_factory=dict)
     # a cada source pode estar associado um conjunto de sanitizers
 
     def add_source(self, source: str, lineno):
@@ -46,7 +46,9 @@ class Label:
         """Add a sanitizer to all existing flows."""
         for source_key in self.flows.keys():
             print(f"Adding sanitizer '{sanitizer}' to source '{source_key}'")
-            self.flows[source_key].add(sanitizer)
+            self.flows[source_key].add((sanitizer, lineno))
+            
+            print(f"Current sanitizers for source '{source_key}': {self.flows[source_key]}")
 
     def combinor(self, other: "Label") -> "Label":
         """ New label that represents the integrity of information that results from combining two pieces of information. """
