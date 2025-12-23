@@ -146,12 +146,16 @@ def main():
     output_dir = Path("output")
     output_dir.mkdir(exist_ok=True)
     
+    # Create validation results file
+    validation_log_path = output_dir / "validation_results.txt"
+    validation_log = open(validation_log_path, "w", encoding="utf-8")
+    
     # Options
     print("⚙️  Options:")
-    validate_patterns_flag = input("   Validate patterns files? (y/N): ").strip().lower() == 'y'
-    ignore_lines = input("   Ignore line numbers in validation? (y/N): ").strip().lower() == 'y'
-    ignore_implicit = input("   Ignore implicit flows in validation? (y/N): ").strip().lower() == 'y'
-    ignore_sanitizers = input("   Ignore sanitizers in validation? (y/N): ").strip().lower() == 'y'
+    validate_patterns_flag = True
+    ignore_lines = False
+    ignore_implicit = False
+    ignore_sanitizers = False
     print()
     
     # Find all test slices
@@ -184,11 +188,19 @@ def main():
         print(f"📄 Slice:    {slice_path}")
         print(f"📋 Patterns: {patterns_path}")
         
+        # Write to log
+        validation_log.write("=" * 70 + "\n")
+        validation_log.write(f"[{i}/{len(slices)}] {test_name}\n")
+        validation_log.write("=" * 70 + "\n")
+        validation_log.write(f"Slice:    {slice_path}\n")
+        validation_log.write(f"Patterns: {patterns_path}\n")
+        
         # Validate patterns if requested
         if validate_patterns_flag:
             print("🔍 Validating patterns file...")
             success, msg = validate_patterns(patterns_path)
             print(f"   {msg}")
+            validation_log.write(f"\nPattern Validation: {msg}\n")
             if success:
                 stats['patterns_valid'] += 1
             else:
@@ -196,33 +208,37 @@ def main():
             print()
         
         # Run the analyzer
-        print("🔄 Running analyzer...")
+        validation_log.write("\nAnalysis: ")
         success, error = run_analyzer(slice_path, patterns_path)
         
         if not success:
             print(f"   ❌ Analysis failed: {error}")
+            validation_log.write(f"FAILED - {error}\n")
             stats['analyzed_failed'] += 1
             print()
             continue
         
         print("   ✅ Analysis completed")
+        validation_log.write("SUCCESS\n")
+        print("   ✅ Analysis completed")
         stats['analyzed_success'] += 1
         
         # Check if output was generated
         generated_output_path = output_dir / f"{test_name}.output.json"
-        
+        validation_log.write(f"Output: NOT GENERATED at {generated_output_path}\n")
+        stats['validation_skipped'] += 1
+        print()
         if not generated_output_path.exists():
-            print(f"   ⚠️  No output file generated at {generated_output_path}")
-            stats['validation_skipped'] += 1
-            print()
             continue
+        
+        print(f"   📝 Output saved to: {generated_output_path}")
+        validation_log.write(f"Output: {generated_output_path}\n")
         
         print(f"   📝 Output saved to: {generated_output_path}")
         
         # Validate against expected output if it exists
         if expected_output_path:
-            print(f"🔍 Validating against expected output...")
-            print(f"   Expected: {expected_output_path}")
+            validation_log.write(f"Expected: {expected_output_path}\n")
             
             success, msg = validate_output(
                 str(generated_output_path),
@@ -234,16 +250,24 @@ def main():
             
             if success is None:
                 print(f"   ⏭️  {msg}")
+                validation_log.write(f"Validation: SKIPPED - {msg}\n")
                 stats['validation_skipped'] += 1
             elif success:
                 print(f"   {msg}")
+                validation_log.write(f"Validation: PASSED\n")
                 stats['validation_success'] += 1
             else:
                 print(f"   {msg}")
+                validation_log.write(f"Validation: FAILED\n{msg}\n")
                 stats['validation_failed'] += 1
         else:
             print("   ℹ️  No expected output file to validate against")
+            validation_log.write("Validation: SKIPPED - No expected output\n")
             stats['validation_skipped'] += 1
+        
+        validation_log.write("\n")    
+        print("   No expected output file to validate against")
+        stats['validation_skipped'] += 1
         
         print()
     
@@ -266,6 +290,34 @@ def main():
     
     print("Output Validation:")
     print(f"  ✅ Passed:           {stats['validation_success']}")
+    
+    # Write summary to log
+    validation_log.write("=" * 70 + "\n")
+    validation_log.write("SUMMARY\n")
+    validation_log.write("=" * 70 + "\n")
+    validation_log.write(f"Total tests:           {stats['total']}\n\n")
+    validation_log.write("Analysis:\n")
+    validation_log.write(f"  Successful:          {stats['analyzed_success']}\n")
+    validation_log.write(f"  Failed:              {stats['analyzed_failed']}\n\n")
+    
+    if validate_patterns_flag:
+        validation_log.write("Pattern Validation:\n")
+        validation_log.write(f"  Valid:               {stats['patterns_valid']}\n")
+        validation_log.write(f"  Invalid:             {stats['patterns_invalid']}\n\n")
+    
+    validation_log.write("Output Validation:\n")
+    validation_log.write(f"  Passed:              {stats['validation_success']}\n")
+    validation_log.write(f"  Failed:              {stats['validation_failed']}\n")
+    validation_log.write(f"  Skipped:             {stats['validation_skipped']}\n")
+    validation_log.write("=" * 70 + "\n")
+    
+    if stats['analyzed_success'] > 0:
+        success_rate = (stats['validation_success'] / stats['analyzed_success']) * 100
+        validation_log.write(f"\nValidation Success Rate: {success_rate:.1f}%\n")
+    
+    # Close log file
+    validation_log.close()
+    print(f"\n📝 Validation results saved to: {validation_log_path}")
     print(f"  ❌ Failed:           {stats['validation_failed']}")
     print(f"  ⏭️  Skipped:          {stats['validation_skipped']}")
     print("=" * 70)
