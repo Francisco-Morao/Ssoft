@@ -61,27 +61,40 @@ class Vulnerabilities:
             return ["none"]
 
         output = []
+        
+        # Dictionary to track counters for each vulnerability type
+        vulnerability_counters = {}
 
         for vulnerability in self.vulnerabilities:
+            # Get or initialize counter for this vulnerability type
+            vuln_name = vulnerability.vulnerability
+            if vuln_name not in vulnerability_counters:
+                vulnerability_counters[vuln_name] = 1
+            
             # Each label represents one source with its sanitizers
             for label in vulnerability.labels:
                 # Each source in the label.flows represents a different flow path
                 for source_tuple, sanitizers_set in label.flows.items():
                     # Convert sanitizers set to list of [sanitizer_name, line_number] pairs
-                    # Since we don't track sanitizer line numbers yet, use 0 as placeholder
-                    sanitizations = []  # Empty list if no sanitizers, otherwise list of [name, lineno]
+                    sanitizations = []  # Empty list if no sanitizers
                     
                     # Build the flow entry
                     flows = [[flow_type, sanitizations]]
                     
+                    # Create vulnerability name with counter
+                    numbered_vuln = f"{vuln_name}_{vulnerability_counters[vuln_name]}"
+                    
                     output.append({
-                        "vulnerability": vulnerability.vulnerability,
+                        "vulnerability": numbered_vuln,
                         "source": [source_tuple[0], source_tuple[1]],
                         "sink": [vulnerability.sink[0], vulnerability.sink[1]],
                         "flows": flows
                     })
+                    
+                    # Increment counter for this vulnerability type
+                    vulnerability_counters[vuln_name] += 1
+        
         return output
-
 
 # <OUTPUT> ::= [ <VULNERABILITIES> ]
 # <VULNERABILITIES> := "none" | <VULNERABILITY> | <VULNERABILITY>, <VULNERABILITIES>
