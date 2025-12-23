@@ -11,7 +11,7 @@ import inspect
 ######################
 
 # Simple dispatcher for expression evaluation
-
+    
 def traverse_Name(node: ast.Name, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None) -> MultiLabel:
     """
     Handles traversal of ast.Name nodes.
@@ -28,7 +28,6 @@ def traverse_Name(node: ast.Name, policy: Policy, multiLabelling: MultiLabelling
         for pattern, label in multilabel.labels.items():
             new_label = Label()
             for src, sanitizers in label.flows.items():
-                # If source name matches variable name, update to current line (it's being used as a source here)
                 if src[0] == node.id:
                     new_label.flows[(src[0], lineno)] = sanitizers.copy()
                 else:
@@ -38,25 +37,23 @@ def traverse_Name(node: ast.Name, policy: Policy, multiLabelling: MultiLabelling
         
         return new_multilabel
     except KeyError:
+        # Handle the case where the variable name does not exist
         
-        lineno = getattr(node, "lineno", None)
+        # check if it is a source or sanitizer function
         label = None
         for pattern in policy.patterns:
             if pattern.is_source(node.id):
-                # Create label with one empty path (no sanitizers)
-                label = Label(flows={(node.id, lineno): set()})
+                label = Label(flows={(node.id, None): set()})
                 break
 
-        if label is None:
-            is_sink_in_any_pattern = any(pattern.is_sink(node.id) for pattern in policy.patterns)
+        if parent and isinstance(parent, ast.Call):
+            lineno = getattr(node, "lineno", None)
+            label = Label(flows={(node.id, lineno): set()})
             
-            if is_sink_in_any_pattern or (parent and isinstance(parent, ast.Call)):
-                # Add this name as a source to all patterns
-                policy.add_pattern(node.id)
-                # Create a label with this variable as a source with one empty path
-                label = Label(flows={(node.id, lineno): set()})
+            policy.add_pattern(node.id)
 
-        return MultiLabel(policy.patterns, label = label)
+        return MultiLabel(policy.patterns, label = label)  
+
 
 def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None) -> MultiLabel:
     func_name = None
