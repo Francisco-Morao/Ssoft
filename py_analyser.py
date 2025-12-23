@@ -34,11 +34,7 @@ def main():
 		for p in patterns_data
 	]
 
-	# ast_tree = ast_utils.python_to_ast_json(code)
 	ast_tree = ast_utils.python_to_ast(code)
-
-	ast_json = ast_utils.python_to_ast_json(code)
-	print(ast_json)
 
 	policy = Policy(patterns)
 	current_labelling = MultiLabelling(map={})

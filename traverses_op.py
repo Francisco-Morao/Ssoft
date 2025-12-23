@@ -43,8 +43,6 @@ def traverse_Name(node: ast.Name, policy: Policy, multiLabelling: MultiLabelling
         lineno = getattr(node, "lineno", None)
         multilabel = MultiLabel(policy.patterns)
         
-        print("traverse_Name: checking", node.id)
-        
         is_source_in_any_pattern = False
         for pattern in policy.patterns:
             if pattern.is_source(node.id):
@@ -127,10 +125,7 @@ def traverse_BinOp(node: ast.BinOp, policy: Policy, multiLabelling: MultiLabelli
     right_ml = eval_expr(node.right, policy, multiLabelling, vulnerabilities, parent)
     
     combinored_ml = left_ml.combinor(right_ml)
-    
-    
-    #check taint
-    
+
     return combinored_ml
 
 def traverse_Compare(node: ast.Compare, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None) -> MultiLabel:     
@@ -194,7 +189,6 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
     for target in node.targets:
         if isinstance(target, ast.Name):
             multiLabelling.mutator(target.id, value_ml)
-            logger(f"Assigned ML {value_ml} to variable '{target.id}'", "traverse_Assign")
         
     add_detect_illegal_flows(node, target.id, value_ml, policy, vulnerabilities, lineno)
 
@@ -278,13 +272,13 @@ def logger(message: str, function_name: str = "", color: int = 1) -> None:
     """
     Simple logger function for debugging.
     """
-    # print(f"[traverses_op] {function_name}:")
-    # if color == 1:  # Green
-    #     color = "\033[92m"
-    # elif color == 2:  # Red
-    #     color = "\033[91m"
-    # color_end = "\033[0m"
-    # print(f"{color}{message}{color_end}")
+    print(f"[traverses_op] {function_name}:")
+    if color == 1:  # Green
+        color = "\033[92m"
+    elif color == 2:  # Red
+        color = "\033[91m"
+    color_end = "\033[0m"
+    print(f"{color}{message}{color_end}")
 
 def add_detect_illegal_flows(node: ast.AST, func_name: str, ml: MultiLabel, policy: Policy, vulnerabilities: Vulnerabilities, lineno: int) -> MultiLabel:
     illegal_multilabel = policy.detect_illegal_flows(func_name, ml)

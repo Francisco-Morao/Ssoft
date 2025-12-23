@@ -42,7 +42,7 @@ class Label:
         """Add a sanitizer to all existing flows."""
         new_flows = []
         for source, sanitizers in self.flows:
-            print(f"Adding sanitizer '{sanitizer}' to source '{source}'")
+            # Union the new sanitizer with existing ones
             new_sanitizers = frozenset(sanitizers | {(sanitizer, lineno)})
             new_flows.append((source, new_sanitizers))
         self.flows = new_flows

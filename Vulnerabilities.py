@@ -68,6 +68,7 @@ class Vulnerabilities:
             
             for label in vulnerability.labels:
                 for source_tuple, sanitizers_frozenset in label.flows:
+                    
                     # Create a key for grouping
                     key = (vuln_name, source_tuple, sink)
                     
@@ -76,9 +77,7 @@ class Vulnerabilities:
                     
                     # Convert sanitizers frozenset to list
                     sanitizers_list = [[s[0], s[1]] for s in sanitizers_frozenset]
-                    print(f"Sanitizers tuples for source {source_tuple}: {sanitizers_frozenset}")
                     
-                    # Add this flow to the group
                     grouped[key].append([flow_type, sanitizers_list])
         
         # Build output with grouped flows
