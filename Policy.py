@@ -79,7 +79,11 @@ class Policy:
         - The label has sources (information is flowing)
         - At least one source has no sanitizer from the pattern applied
         """
-        illegal_multilabel = MultiLabel(set())
+        # Use patterns from the multilabel, not from self.patterns
+        # This handles the case where patterns have been dynamically updated
+        
+        illegal_multilabel = MultiLabel(multilabel.labels.keys())
+        # illegal_multilabel = MultiLabel(self.patterns)
 
         # Iterate through patterns in the multilabel
         for pattern, label in multilabel.labels.items():
@@ -89,7 +93,6 @@ class Policy:
                 for source, sanitizers in label.flows.items():
                     #check if source and sanitizers are in the pattern
                     if pattern.is_source(source[0]):
-                        illegal_multilabel.add_empty_pattern(pattern)
                         illegal_multilabel.labels[pattern].add_source(source[0], source[1])
                         for sanitizer in sanitizers:
                             if pattern.is_sanitizer(sanitizer[0]):
