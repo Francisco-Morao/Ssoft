@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import ast
 import ast_utils
 import traverses_op
 
@@ -43,9 +44,14 @@ def main():
 	current_labelling = MultiLabelling(map={})
 	vulnerabilities = Vulnerabilities()
 
+	multilabellings = [current_labelling]
 	for stmt in ast_tree.body:
-		current_labelling = traverses_op.traverse_stmt(stmt, policy, current_labelling, vulnerabilities)
-	 
+		new_multilabellings = []
+		for labelling in multilabellings:
+			stmt_labellings = traverses_op.traverse_stmt(stmt, policy, labelling, vulnerabilities)
+			new_multilabellings.extend(stmt_labellings)
+		multilabellings = new_multilabellings
+	
 	output_dir = os.path.join(os.getcwd(), "output")
 	os.makedirs(output_dir, exist_ok=True)
  

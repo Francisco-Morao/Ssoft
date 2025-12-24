@@ -218,26 +218,30 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
 
     return multiLabelling
 
-def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities) -> MultiLabelling:    
+def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities) -> tuple[MultiLabelling, MultiLabelling]:    
     """
     Handles traversal of ast.If nodes.
+    Returns:
+        - MultiLabelling for the "if" branch.
+        - MultiLabelling for the "else" branch.
     """
-    # for statements that introduce more than one control path, create copies of multilabellings
+    # For statements that introduce more than one control path, create copies of multilabellings
     # and combine them so as to capture correctly the different paths that information flows might
     # be taking
 
-    # TODO: not taking into account implicit flows yet
+    # TODO: Not taking into account implicit flows yet
 
     # Evaluate the condition of the if statement
     condition_ml = eval_expr(node.test, policy, multiLabelling, vulnerabilities, parent=node)
 
-    # Create a copy of the multilabelling for the "then" branch
-    then_branch_labelling = multiLabelling.copy()
+    # Create a copy of the multilabelling for the "if" branch
+    if_branch_labelling = multiLabelling.copy()
 
     # Traverse the code inside the if
     for stmt in node.body:
-        stmt_labelling = traverse_stmt(stmt, policy, then_branch_labelling, vulnerabilities)
-        then_branch_labelling = then_branch_labelling.combinor(stmt_labelling)
+        stmt_labellings = traverse_stmt(stmt, policy, if_branch_labelling, vulnerabilities)
+        for stmt_labelling in stmt_labellings:
+            if_branch_labelling = if_branch_labelling.combinor(stmt_labelling)
 
     # Create a copy of the multilabelling for the "else" branch
     else_branch_labelling = multiLabelling.copy()
@@ -245,13 +249,11 @@ def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vu
     # Traverse the "else" branch if it exists
     if node.orelse:
         for stmt in node.orelse:
-            stmt_labelling = traverse_stmt(stmt, policy, else_branch_labelling, vulnerabilities)
-            else_branch_labelling = else_branch_labelling.combinor(stmt_labelling)
-    
-    # Combine the multilabellings from the "then" and "else" branches
-    combined_labelling = then_branch_labelling.combinor(else_branch_labelling)
+            stmt_labellings = traverse_stmt(stmt, policy, else_branch_labelling, vulnerabilities)
+            for stmt_labelling in stmt_labellings:
+                else_branch_labelling = else_branch_labelling.combinor(stmt_labelling)
 
-    return combined_labelling
+    return if_branch_labelling, else_branch_labelling
 
 def traverse_While(node: ast.While, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities) -> MultiLabelling:
     """
@@ -301,21 +303,23 @@ def eval_expr(node: ast.AST, policy: Policy, multiLabelling: MultiLabelling, vul
 
 
 def traverse_stmt(node: ast.stmt, policy: Policy, multiLabelling: MultiLabelling, 
-                  vulnerabilities: Vulnerabilities) -> MultiLabelling:
+                  vulnerabilities: Vulnerabilities) -> list[MultiLabelling]:
     """
-    Traverses a statement node and returns updated multilabelling.
+    Traverses a statement node and returns a list of updated multilabellings.
     This is the TOP LEVEL traversal that handles control flow.
     """
+    logger(f"Node type: {type(node).__name__}", "traverse_stmt", color=1)
     if isinstance(node, ast.Assign):
-        return traverse_Assign(node, policy, multiLabelling, vulnerabilities)
+        return [traverse_Assign(node, policy, multiLabelling, vulnerabilities)]
     elif isinstance(node, ast.If):
-        return traverse_If(node, policy, multiLabelling, vulnerabilities)
+        if_labelling, else_labelling = traverse_If(node, policy, multiLabelling, vulnerabilities)
+        return [if_labelling, else_labelling]
     elif isinstance(node, ast.While):
-        return traverse_While(node, policy, multiLabelling, vulnerabilities)
+        return [traverse_While(node, policy, multiLabelling, vulnerabilities)]
     elif isinstance(node, ast.Expr):
-        return traverse_Expr(node, policy, multiLabelling, vulnerabilities)
+        return [traverse_Expr(node, policy, multiLabelling, vulnerabilities)]
     else:
-        return multiLabelling
+        return [multiLabelling]
     
 
 def logger(message: str, function_name: str = "", color: int = 1) -> None:
