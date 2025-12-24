@@ -114,7 +114,12 @@ def validate_output(generated_output_path, expected_output_path, ignore_lines=Fa
         ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
         full_output = ansi_escape.sub('', full_output)
         
-        if result.returncode == 0:
+        # Check if validation actually passed
+        # Even with returncode 0, there might be WRONG FLOWS or MISSING FLOWS
+        has_wrong_flows = "WRONG FLOWS" in full_output and full_output.split("WRONG FLOWS")[1].strip().startswith("[") and full_output.split("WRONG FLOWS")[1].strip()[1] != ']'
+        has_missing_flows = "MISSING FLOWS" in full_output and full_output.split("MISSING FLOWS")[1].strip().startswith("[") and full_output.split("MISSING FLOWS")[1].strip()[1] != ']'
+        
+        if result.returncode == 0 and not has_wrong_flows and not has_missing_flows:
             return True, full_output
         else:
             return False, full_output
@@ -269,13 +274,15 @@ def main():
                 validation_log.write(f"\n### ⏭️ Validation: SKIPPED\n{msg}\n")
                 stats['validation_skipped'] += 1
             elif success:
-                print(f"   ✅ Output matches expected!")
+                print(f"   ✅ VALIDATION PASSED!")
                 validation_log.write(f"\n### ✅ Validation: PASSED\n\n")
                 validation_log.write(f"```\n{msg}\n```\n")
                 stats['validation_success'] += 1
+                stats.setdefault('passed_tests', []).append(test_name)
             else:
-                print(f"   {msg}")
-                validation_log.write(f"Validation: FAILED\n{msg}\n")
+                print(f"   ❌ VALIDATION FAILED (see log for details)")
+                validation_log.write(f"\n### ❌ Validation: FAILED\n\n")
+                validation_log.write(f"```\n{msg}\n```\n")
                 stats['validation_failed'] += 1
         else:
             print("   ℹ️  No expected output file to validate against")
@@ -296,16 +303,24 @@ def main():
     print(f"  ❌ Failed:           {stats['analyzed_failed']}")
     print()
     
-    if validate_patterns_flag:
-        print("Pattern Validation:")
-        print(f"  ✅ Valid:            {stats['patterns_valid']}")
-        print(f"  ❌ Invalid:          {stats['patterns_invalid']}")
-        print()
-    
     print("Output Validation:")
     print(f"  ✅ Passed:           {stats['validation_success']}")
+    print(f"  ❌ Failed:           {stats['validation_failed']}")
+    print(f"  ⏭️  Skipped:          {stats['validation_skipped']}")
+    print("=" * 70)
     
-    # Write summary to log
+    # Success rate
+    if stats['analyzed_success'] > 0:
+        success_rate = (stats['validation_success'] / stats['analyzed_success']) * 100
+        print(f"\n🎯 Validation Success Rate: {success_rate:.1f}%")
+    
+    # List passed tests
+    if stats.get('passed_tests'):
+        print(f"\n✅ PASSED TESTS ({len(stats['passed_tests'])}):")
+        for test in stats['passed_tests']:
+            print(f"   • {test}")
+    else:
+        print(f"\n❌ No tests passed validation")
     validation_log.write("\n## 📊 SUMMARY\n\n")
     validation_log.write(f"**Total tests:** {stats['total']}\n\n")
     
@@ -314,13 +329,6 @@ def main():
     validation_log.write("|--------|-------|\n")
     validation_log.write(f"| ✅ Successful | {stats['analyzed_success']} |\n")
     validation_log.write(f"| ❌ Failed | {stats['analyzed_failed']} |\n\n")
-    
-    if validate_patterns_flag:
-        validation_log.write("### Pattern Validation\n\n")
-        validation_log.write("| Status | Count |\n")
-        validation_log.write("|--------|-------|\n")
-        validation_log.write(f"| ✅ Valid | {stats['patterns_valid']} |\n")
-        validation_log.write(f"| ❌ Invalid | {stats['patterns_invalid']} |\n\n")
     
     validation_log.write("### Output Validation\n\n")
     validation_log.write("| Status | Count |\n")
@@ -333,17 +341,17 @@ def main():
         success_rate = (stats['validation_success'] / stats['analyzed_success']) * 100
         validation_log.write(f"### 🎯 Validation Success Rate: {success_rate:.1f}%\n")
     
+    # List passed tests in markdown
+    if stats.get('passed_tests'):
+        validation_log.write(f"\n## ✅ PASSED TESTS ({len(stats['passed_tests'])})\n\n")
+        for test in stats['passed_tests']:
+            validation_log.write(f"- **{test}**\n")
+    else:
+        validation_log.write(f"\n## ❌ No tests passed validation\n")
+    
     # Close log file
     validation_log.close()
     print(f"\n📝 Validation results saved to: {validation_log_path}")
-    print(f"  ❌ Failed:           {stats['validation_failed']}")
-    print(f"  ⏭️  Skipped:          {stats['validation_skipped']}")
-    print("=" * 70)
-    
-    # Success rate
-    if stats['analyzed_success'] > 0:
-        success_rate = (stats['validation_success'] / stats['analyzed_success']) * 100
-        print(f"\n🎯 Validation Success Rate: {success_rate:.1f}%")
 
 if __name__ == "__main__":
     main()
