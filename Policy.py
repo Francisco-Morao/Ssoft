@@ -68,7 +68,6 @@ class Policy:
 
         self.patterns = new_patterns
 
-    # TODO: implement properly
     def detect_illegal_flows(self, sink_name: str, multilabel: MultiLabel) -> MultiLabel:
         """
         Given a sink name and a MultiLabel, returns a new MultiLabel that only includes labels
@@ -83,7 +82,6 @@ class Policy:
         # This handles the case where patterns have been dynamically updated
         
         illegal_multilabel = MultiLabel(multilabel.labels.keys())
-        # illegal_multilabel = MultiLabel(self.patterns)
 
         # Iterate through patterns in the multilabel
         for pattern, label in multilabel.labels.items():

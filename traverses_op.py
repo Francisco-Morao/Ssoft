@@ -39,36 +39,39 @@ def traverse_Name(node: ast.Name, policy: Policy, multiLabelling: MultiLabelling
         return new_multilabel
     except KeyError:
         # Handle the case where the variable name does not exist
-        # Undefined variables are treated as potential sources (conservative approach)
+        # Undefined variables carry information that should be tracked conservatively
         lineno = getattr(node, "lineno", None)
         multilabel = MultiLabel(policy.patterns)
         
-        is_source_in_any_pattern = False
+        # For undefined variables, create flows for ALL patterns
+        # This is because accessing an undefined variable means we're reading unknown data
         for pattern in policy.patterns:
+            multilabel.labels[pattern] = Label()
+            # Add as source only if it's explicitly a source in the pattern
             if pattern.is_source(node.id):
-                multilabel.labels[pattern] = Label()
                 multilabel.labels[pattern].add_flow(node.id, lineno)
-                is_source_in_any_pattern = True
-        
-        # If not explicitly a source, treat undefined variables as potential sources for all patterns
-        if not is_source_in_any_pattern:
-            for pattern in policy.patterns:
-                multilabel.labels[pattern] = Label()
+            else:
+                # Even if not a declared source, undefined variables carry information
+                # that should be tracked (conservative/safe analysis)
                 multilabel.labels[pattern].add_flow(node.id, lineno)
 
         return multilabel  
 
 
 def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None) -> MultiLabel:
+    
     func_name = None
+    ml = MultiLabel(policy.patterns)
+    
     if isinstance(node.func, ast.Name): # d()
         func_name = node.func.id
-    elif isinstance(node.func, ast.Attribute): # modulo.attr()
+    elif isinstance(node.func, ast.Attribute): # b.m()
         func_name = node.func.attr
-
-    ml = MultiLabel(policy.patterns)
-
-    if func_name:
+        # Evaluate the entire attribute access (b.m) to get flows from both the object and the attribute
+        attr_ml = eval_expr(node.func, policy, multiLabelling, vulnerabilities, node)
+        ml = ml.combinor(attr_ml)
+    
+    if func_name is not None:
         lineno = getattr(node, "lineno", None)
         # Evaluate args and combine their multilabels
         for arg in node.args:
@@ -83,6 +86,7 @@ def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling
         
         # Add as sanitizer only to existing flows from sources
         ml.add_sanitizer(func_name, lineno)
+
     return ml
 
 def traverse_UnaryOp(node: ast.UnaryOp, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None) -> MultiLabel:
@@ -149,10 +153,20 @@ def traverse_Attribute(node: ast.Attribute, policy: Policy, multiLabelling: Mult
     
     # Attribute(expr value, identifier attr, expr_context ctx)
     
+    # Get the multilabel from the base object
     value_ml = eval_expr(node.value, policy, multiLabelling, vulnerabilities, parent)
-    attr_ml = eval_expr(node.attr, policy, multiLabelling, vulnerabilities, parent)
     
-    return value_ml.combinor(attr_ml)
+    lineno = getattr(node, "lineno", None)
+    attr_ml = MultiLabel(policy.patterns)
+    
+    for pattern in policy.patterns:
+        if pattern.is_source(node.attr):
+            attr_ml.labels[pattern] = Label()
+            attr_ml.labels[pattern].add_flow(node.attr, lineno)
+    
+    combined_ml = value_ml.combinor(attr_ml)
+    
+    return combined_ml
     
 def traverse_Subscript(node: ast.Subscript, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None) -> MultiLabel:
     """
@@ -167,9 +181,8 @@ def traverse_Subscript(node: ast.Subscript, policy: Policy, multiLabelling: Mult
     value_ml = eval_expr(node.value, policy, multiLabelling, vulnerabilities, parent)
     slice_ml = eval_expr(node.slice, policy, multiLabelling, vulnerabilities, parent)
     return value_ml.combinor(slice_ml)
-    
-    
-    
+
+
 #######################
 # Statement Handlers  #
 ######################
@@ -178,28 +191,29 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
     """
     Handles traversal of ast.Assign nodes.
     """
-        
+
     # Assign(expr* targets, expr value, string? type_comment)
-    # we need to consider this c.e = 0
-    
     target = node.targets[0]
     
     lineno = getattr(node, "lineno", None)
     target_id = None
-    # target_ml = eval_expr(target, policy, multiLabelling, vulnerabilities, node)
+    target_ml = eval_expr(target, policy, multiLabelling, vulnerabilities, node)
+    value_ml = eval_expr(node.value, policy, multiLabelling, vulnerabilities, node)
+
     if isinstance(target, ast.Attribute):
         target_id = target.value.id
+        target_attr = target.attr
+        add_detect_illegal_flows(node, target_attr, value_ml, policy, vulnerabilities, lineno)
     else:
         target_id = target.id
 
-    value_ml = eval_expr(node.value, policy, multiLabelling, vulnerabilities, node)
-    
     add_detect_illegal_flows(node, target_id, value_ml, policy, vulnerabilities, lineno)
-
+    target_ml = target_ml.combinor(value_ml)
     # Update multilabelling for each target
     for target in node.targets:
-        multiLabelling.mutator(target.id, value_ml)
+        multiLabelling.mutator(target_id, value_ml)
 
+    multiLabelling.mutator(target_id, target_ml)
     return multiLabelling
 
 def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities) -> MultiLabelling:    
