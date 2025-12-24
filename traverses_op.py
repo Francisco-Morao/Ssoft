@@ -206,9 +206,6 @@ def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vu
     """
     Handles traversal of ast.If nodes.
     """
-    pass
-    # TODO
-    
     # print(ast.dump(ast.parse('a if b else c', mode='eval'), indent=4))
     # Expression(
     #     body=IfExp(
@@ -218,8 +215,30 @@ def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vu
     
     # If(expr test, stmt* body, stmt* orelse)
 
+    # TODO: not taking into account implicit flows yet
 
-    # Implement logic for handling ast.If nodes
+    # Evaluate the condition of the if statement
+    condition_ml = eval_expr(node.test, policy, multiLabelling, vulnerabilities, parent=node)
+
+    # Create a copy of the multilabelling for the "then" branch
+    then_branch_labelling = multiLabelling.copy()
+
+    # Traverse the code inside the if
+    for stmt in node.body:
+        then_branch_labelling = traverse_stmt(stmt, policy, then_branch_labelling, vulnerabilities)
+
+    # Create a copy of the multilabelling for the "else" branch
+    else_branch_labelling = multiLabelling.copy()
+
+    # Traverse the "else" branch if it exists
+    if node.orelse:
+        for stmt in node.orelse:
+            else_branch_labelling = traverse_stmt(stmt, policy, else_branch_labelling, vulnerabilities)
+
+    # Combine the multilabellings from the "then" and "else" branches
+    combined_labelling = then_branch_labelling.combinor(else_branch_labelling)
+
+    return combined_labelling
 
 def traverse_While(node: ast.While, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities) -> MultiLabelling:
     """

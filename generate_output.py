@@ -233,11 +233,12 @@ def main():
                 print(f"   ❌ Analysis failed")
                 validation_log.write(f"- **Analysis:** ❌ FAILED\n")
             stats['analyzed_failed'] += 1
-            # Don't continue - still check for existing output file
-        else:
-            print("   ✅ Analysis completed")
-            validation_log.write(f"- **Analysis:** ✅ SUCCESS\n")
-            stats['analyzed_success'] += 1
+            print()
+            continue
+        
+        print("   ✅ Analysis completed")
+        validation_log.write("SUCCESS\n")
+        stats['analyzed_success'] += 1
         
         # Check if output was generated
         generated_output_path = output_dir / f"{test_name}.output.json"
@@ -273,9 +274,8 @@ def main():
                 validation_log.write(f"```\n{msg}\n```\n")
                 stats['validation_success'] += 1
             else:
-                print(f"   ❌ Validation failed (see log for details)")
-                validation_log.write(f"\n### ❌ Validation: FAILED\n\n")
-                validation_log.write(f"```\n{msg}\n```\n")
+                print(f"   {msg}")
+                validation_log.write(f"Validation: FAILED\n{msg}\n")
                 stats['validation_failed'] += 1
         else:
             print("   ℹ️  No expected output file to validate against")
