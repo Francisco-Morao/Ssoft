@@ -208,12 +208,14 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
         target_id = target.id
 
     add_detect_illegal_flows(node, target_id, value_ml, policy, vulnerabilities, lineno)
-    target_ml = target_ml.combinor(value_ml)
     # Update multilabelling for each target
     for target in node.targets:
         multiLabelling.mutator(target_id, value_ml)
 
-    multiLabelling.mutator(target_id, target_ml)
+    if isinstance(target, ast.Attribute):
+        target_ml = target_ml.combinor(value_ml)
+        multiLabelling.mutator(target_id, target_ml)
+
     return multiLabelling
 
 def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities) -> MultiLabelling:    
