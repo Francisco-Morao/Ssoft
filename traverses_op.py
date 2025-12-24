@@ -174,10 +174,7 @@ def traverse_Subscript(node: ast.Subscript, policy: Policy, multiLabelling: Mult
     """
 
     # Subscript(expr value, expr slice, expr_context ctx)
-    
-    # TODO handle slice properly ??????? PRECISAMOS DE OS AVALIAR? NOT SURE PROVAVELEMTNE SIM
-    # VOU METER UMA VERSAO COM AVALIÇAO DAS SLICES MAS DESPOIS CONFIRMAR
-    
+
     value_ml = eval_expr(node.value, policy, multiLabelling, vulnerabilities, parent)
     slice_ml = eval_expr(node.slice, policy, multiLabelling, vulnerabilities, parent)
     return value_ml.combinor(slice_ml)
@@ -204,6 +201,9 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
         target_id = target.value.id
         target_attr = target.attr
         add_detect_illegal_flows(node, target_attr, value_ml, policy, vulnerabilities, lineno)
+    elif isinstance(target, ast.Subscript):
+        target_id = target.value.id
+        add_detect_illegal_flows(node, target_id, target_ml, policy, vulnerabilities, lineno)
     else:
         target_id = target.id
 
@@ -212,7 +212,7 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
     for target in node.targets:
         multiLabelling.mutator(target_id, value_ml)
 
-    if isinstance(target, ast.Attribute):
+    if isinstance(target, ast.Attribute) or isinstance(target, ast.Subscript):
         target_ml = target_ml.combinor(value_ml)
         multiLabelling.mutator(target_id, target_ml)
 
@@ -308,7 +308,7 @@ def traverse_stmt(node: ast.stmt, policy: Policy, multiLabelling: MultiLabelling
     Traverses a statement node and returns a list of updated multilabellings.
     This is the TOP LEVEL traversal that handles control flow.
     """
-    logger(f"Node type: {type(node).__name__}", "traverse_stmt", color=1)
+    # logger(f"Node type: {type(node).__name__}", "traverse_stmt", color=1)
     if isinstance(node, ast.Assign):
         return [traverse_Assign(node, policy, multiLabelling, vulnerabilities)]
     elif isinstance(node, ast.If):
