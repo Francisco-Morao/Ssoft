@@ -34,10 +34,16 @@ class MultiLabelling:
         # Only include variables that exist in BOTH branches (conservative approach)
         combined = MultiLabelling({}) 
 
-        # Only combine names that exist in both self and other
-        for name in set(self.map.keys()).intersection(other.map.keys()):
-            ml_self = self.map[name]
-            ml_other = other.map[name]
-            combined.map[name] = ml_self.combinor(ml_other)
+        # Combine all names from both self and other
+        for name in set(self.map.keys()).union(other.map.keys()):
+            ml_self = self.map.get(name)
+            ml_other = other.map.get(name)
+            
+            if ml_self and ml_other:
+                combined.map[name] = ml_self.combinor(ml_other)
+            elif ml_self:
+                combined.map[name] = ml_self
+            elif ml_other:
+                combined.map[name] = ml_other
 
         return combined 
