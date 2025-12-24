@@ -225,7 +225,8 @@ def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vu
 
     # Traverse the code inside the if
     for stmt in node.body:
-        then_branch_labelling = traverse_stmt(stmt, policy, then_branch_labelling, vulnerabilities)
+        stmt_labelling = traverse_stmt(stmt, policy, then_branch_labelling, vulnerabilities)
+        then_branch_labelling = then_branch_labelling.combinor(stmt_labelling)
 
     # Create a copy of the multilabelling for the "else" branch
     else_branch_labelling = multiLabelling.copy()
@@ -233,8 +234,9 @@ def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vu
     # Traverse the "else" branch if it exists
     if node.orelse:
         for stmt in node.orelse:
-            else_branch_labelling = traverse_stmt(stmt, policy, else_branch_labelling, vulnerabilities)
-
+            stmt_labelling = traverse_stmt(stmt, policy, else_branch_labelling, vulnerabilities)
+            else_branch_labelling = else_branch_labelling.combinor(stmt_labelling)
+    
     # Combine the multilabellings from the "then" and "else" branches
     combined_labelling = then_branch_labelling.combinor(else_branch_labelling)
 
