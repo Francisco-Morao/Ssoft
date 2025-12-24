@@ -220,14 +220,9 @@ def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vu
     """
     Handles traversal of ast.If nodes.
     """
-    # print(ast.dump(ast.parse('a if b else c', mode='eval'), indent=4))
-    # Expression(
-    #     body=IfExp(
-    #         test=Name(id='b', ctx=Load()),
-    #         body=Name(id='a', ctx=Load()),
-    #         orelse=Name(id='c', ctx=Load())))
-    
-    # If(expr test, stmt* body, stmt* orelse)
+    # for statements that introduce more than one control path, create copies of multilabellings
+    # and combine them so as to capture correctly the different paths that information flows might
+    # be taking
 
     # TODO: not taking into account implicit flows yet
 
