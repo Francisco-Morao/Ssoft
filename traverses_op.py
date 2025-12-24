@@ -33,8 +33,20 @@ def traverse_Name(node: ast.Name, policy: Policy, multiLabelling: MultiLabelling
             if pattern.is_source(node.id):
                 if pattern not in new_multilabel.labels:
                     new_multilabel.labels[pattern] = Label()
-                # Add as a new flow with no sanitizers
-                new_multilabel.labels[pattern].add_flow(node.id, lineno)
+                    # Add as a new flow with no sanitizers
+                    new_multilabel.labels[pattern].add_flow(node.id, lineno)
+                else:
+                    # Check if there's already a flow with this source name
+                    label = new_multilabel.labels[pattern]
+                    has_flow_with_source = False
+                    for src, sanitizers in label.flows:
+                        if src[0] == node.id:
+                            has_flow_with_source = True
+                            break
+                    
+                    if not has_flow_with_source:
+                        # No existing flow with this source, add one
+                        new_multilabel.labels[pattern].add_flow(node.id, lineno)
         
         return new_multilabel
     except KeyError:
@@ -47,13 +59,7 @@ def traverse_Name(node: ast.Name, policy: Policy, multiLabelling: MultiLabelling
         # This is because accessing an undefined variable means we're reading unknown data
         for pattern in policy.patterns:
             multilabel.labels[pattern] = Label()
-            # Add as source only if it's explicitly a source in the pattern
-            if pattern.is_source(node.id):
-                multilabel.labels[pattern].add_flow(node.id, lineno)
-            else:
-                # Even if not a declared source, undefined variables carry information
-                # that should be tracked (conservative/safe analysis)
-                multilabel.labels[pattern].add_flow(node.id, lineno)
+            multilabel.labels[pattern].add_flow(node.id, lineno)
 
         return multilabel  
 
@@ -157,6 +163,8 @@ def traverse_Attribute(node: ast.Attribute, policy: Policy, multiLabelling: Mult
     value_ml = eval_expr(node.value, policy, multiLabelling, vulnerabilities, parent)
     
     lineno = getattr(node, "lineno", None)
+    
+    # The attribute name can be a source and we cant do the eval_expr because it is a string
     attr_ml = MultiLabel(policy.patterns)
     
     for pattern in policy.patterns:
@@ -200,9 +208,13 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
     if isinstance(target, ast.Attribute):
         target_id = target.value.id
         target_attr = target.attr
+        # Precisamos de confirmar o bloco do a.c = b
+        # Ou seja se para do b há flow para o c 
+        # depois mais a frente confirmar o a que é o value
         add_detect_illegal_flows(node, target_attr, value_ml, policy, vulnerabilities, lineno)
     elif isinstance(target, ast.Subscript):
         target_id = target.value.id
+        # Precisamos de confirmar este bloco todo c[a] e depois mais a frente o value
         add_detect_illegal_flows(node, target_id, target_ml, policy, vulnerabilities, lineno)
     else:
         target_id = target.id
@@ -211,14 +223,16 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
     # Update multilabelling for each target
     for target in node.targets:
         multiLabelling.mutator(target_id, value_ml)
-
+    # tanto para atributos e subscripts
+    # precisamos de combinar os multilabels porque queremos manter a informação que 
+    # já estava no value do atributo ou subscript com o target que está a ser atribuído
     if isinstance(target, ast.Attribute) or isinstance(target, ast.Subscript):
         target_ml = target_ml.combinor(value_ml)
         multiLabelling.mutator(target_id, target_ml)
 
     return multiLabelling
 
-def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities) -> tuple[MultiLabelling, MultiLabelling]:    
+def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities) -> tuple[MultiLabelling, MultiLabelling]:
     """
     Handles traversal of ast.If nodes.
     Returns:
@@ -232,8 +246,9 @@ def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vu
     # TODO: Not taking into account implicit flows yet
 
     # Evaluate the condition of the if statement
+    
     condition_ml = eval_expr(node.test, policy, multiLabelling, vulnerabilities, parent=node)
-
+    
     # Create a copy of the multilabelling for the "if" branch
     if_branch_labelling = multiLabelling.copy()
 

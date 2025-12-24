@@ -70,8 +70,8 @@ class Label:
          Used when traversing AST nodes to set correct line numbers."""
         new_label = Label()
         for src, sanitizers in self.flows:
-            if src[0] == source_name:
-                # Update the line number for this source
+            if src[0] == source_name and len(sanitizers) == 0:
+                # Update the line number for direct source flows (no sanitizers)
                 new_label.flows.append(((src[0], new_lineno), sanitizers))
             else:
                 # Keep the original flow as-is
