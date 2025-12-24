@@ -82,7 +82,7 @@ def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling
         ml.add_source(func_name, lineno)
         
         # Add as sanitizer only to existing flows from sources
-        ml.add_sanitizer(func_name, lineno)    
+        ml.add_sanitizer(func_name, lineno)
     return ml
 
 def traverse_UnaryOp(node: ast.UnaryOp, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None) -> MultiLabel:
@@ -149,7 +149,10 @@ def traverse_Attribute(node: ast.Attribute, policy: Policy, multiLabelling: Mult
     
     # Attribute(expr value, identifier attr, expr_context ctx)
     
-    return eval_expr(node.value, policy, multiLabelling, vulnerabilities, parent)
+    value_ml = eval_expr(node.value, policy, multiLabelling, vulnerabilities, parent)
+    attr_ml = eval_expr(node.attr, policy, multiLabelling, vulnerabilities, parent)
+    
+    return value_ml.combinor(attr_ml)
     
 def traverse_Subscript(node: ast.Subscript, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None) -> MultiLabel:
     """
@@ -177,20 +180,25 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
     """
         
     # Assign(expr* targets, expr value, string? type_comment)
-        
+    # we need to consider this c.e = 0
+    
     target = node.targets[0]
     
     lineno = getattr(node, "lineno", None)
-    
-    # Only evaluate the value being assigned, not the target
+    target_id = None
+    # target_ml = eval_expr(target, policy, multiLabelling, vulnerabilities, node)
+    if isinstance(target, ast.Attribute):
+        target_id = target.value.id
+    else:
+        target_id = target.id
+
     value_ml = eval_expr(node.value, policy, multiLabelling, vulnerabilities, node)
     
+    add_detect_illegal_flows(node, target_id, value_ml, policy, vulnerabilities, lineno)
+
     # Update multilabelling for each target
     for target in node.targets:
-        if isinstance(target, ast.Name):
-            multiLabelling.mutator(target.id, value_ml)
-        
-    add_detect_illegal_flows(node, target.id, value_ml, policy, vulnerabilities, lineno)
+        multiLabelling.mutator(target.id, value_ml)
 
     return multiLabelling
 
@@ -200,6 +208,16 @@ def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vu
     """
     pass
     # TODO
+    
+    # print(ast.dump(ast.parse('a if b else c', mode='eval'), indent=4))
+    # Expression(
+    #     body=IfExp(
+    #         test=Name(id='b', ctx=Load()),
+    #         body=Name(id='a', ctx=Load()),
+    #         orelse=Name(id='c', ctx=Load())))
+    
+    # If(expr test, stmt* body, stmt* orelse)
+
 
     # Implement logic for handling ast.If nodes
 

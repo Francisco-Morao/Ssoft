@@ -104,10 +104,20 @@ def validate_output(generated_output_path, expected_output_path, ignore_lines=Fa
         )
         
         # Check result
+        # Return full output for logging (strip ANSI color codes)
+        import re
+        full_output = result.stdout
+        if result.stderr:
+            full_output += "\n" + result.stderr
+        
+        # Remove ANSI color codes
+        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+        full_output = ansi_escape.sub('', full_output)
+        
         if result.returncode == 0:
-            return True, "✅ Output matches expected!"
+            return True, full_output
         else:
-            return False, f"❌ Validation failed:\n{result.stdout}\n{result.stderr}"
+            return False, full_output
             
     except subprocess.TimeoutExpired:
         return False, "Validation timeout"
@@ -147,10 +157,13 @@ def main():
     output_dir.mkdir(exist_ok=True)
     
     # Create validation results file
-    validation_log_path = output_dir / "validation_results.txt"
+    validation_log_path = output_dir / "validation_results.md"
     validation_log = open(validation_log_path, "w", encoding="utf-8")
-    
-    # Options
+        # Write markdown header
+    validation_log.write("# 🚀 Validation Results\n")
+    validation_log.write("## Software Security Project 2025/26\n\n")
+    validation_log.write("---\n\n")
+        # Options
     print("⚙️  Options:")
     validate_patterns_flag = True
     ignore_lines = False
@@ -190,18 +203,19 @@ def main():
         print(f"📋 Patterns: {patterns_path}")
         
         # Write to log
-        validation_log.write("=" * 70 + "\n")
-        validation_log.write(f"[{i}/{len(slices)}] {test_name}\n")
-        validation_log.write("=" * 70 + "\n")
-        validation_log.write(f"Slice:    {slice_path}\n")
-        validation_log.write(f"Patterns: {patterns_path}\n")
+        validation_log.write(f"\n## [{i}/{len(slices)}] {test_name}\n\n")
+        validation_log.write(f"- **Slice:** `{slice_path}`\n")
+        validation_log.write(f"- **Patterns:** `{patterns_path}`\n")
         
         # Validate patterns if requested
         if validate_patterns_flag:
             print("🔍 Validating patterns file...")
             success, msg = validate_patterns(patterns_path)
             print(f"   {msg}")
-            validation_log.write(f"\nPattern Validation: {msg}\n")
+            if success:
+                validation_log.write(f"\n- **Pattern Validation:** ✅ Valid\n")
+            else:
+                validation_log.write(f"\n- **Pattern Validation:** ❌ {msg}\n")
             if success:
                 stats['patterns_valid'] += 1
             else:
@@ -209,39 +223,37 @@ def main():
             print()
         
         # Run the analyzer
-        validation_log.write("\nAnalysis: ")
-        success, error = run_analyzer(slice_path, patterns_path)
+        analysis_success, error = run_analyzer(slice_path, patterns_path)
         
-        if not success:
+        if not analysis_success:
             if verbose: #dont show error if not verbose
                 print(f"   ❌ Analysis failed: {error}")
-                validation_log.write(f"FAILED - {error}\n")
+                validation_log.write(f"- **Analysis:** ❌ FAILED - `{error}`\n")
             else:
                 print(f"   ❌ Analysis failed")
-                validation_log.write(f"FAILED\n")
+                validation_log.write(f"- **Analysis:** ❌ FAILED\n")
             stats['analyzed_failed'] += 1
-            print()
-            continue
-        
-        print("   ✅ Analysis completed")
-        validation_log.write("SUCCESS\n")
-        stats['analyzed_success'] += 1
+            # Don't continue - still check for existing output file
+        else:
+            print("   ✅ Analysis completed")
+            validation_log.write(f"- **Analysis:** ✅ SUCCESS\n")
+            stats['analyzed_success'] += 1
         
         # Check if output was generated
         generated_output_path = output_dir / f"{test_name}.output.json"
-        validation_log.write(f"Output: NOT GENERATED at {generated_output_path}\n")
-        stats['validation_skipped'] += 1
-        print()
         if not generated_output_path.exists():
+            validation_log.write(f"- **Output:** ⚠️ NOT GENERATED\n")
+            stats['validation_skipped'] += 1
+            print()
             continue
         
         print(f"   📝 Output saved to: {generated_output_path}")
-        validation_log.write(f"Output: {generated_output_path}\n")
+        validation_log.write(f"- **Output:** `{generated_output_path}`\n")
         
         
         # Validate against expected output if it exists
         if expected_output_path:
-            validation_log.write(f"Expected: {expected_output_path}\n")
+            validation_log.write(f"- **Expected:** `{expected_output_path}`\n")
             
             success, msg = validate_output(
                 str(generated_output_path),
@@ -253,25 +265,24 @@ def main():
             
             if success is None:
                 print(f"   ⏭️  {msg}")
-                validation_log.write(f"Validation: SKIPPED - {msg}\n")
+                validation_log.write(f"\n### ⏭️ Validation: SKIPPED\n{msg}\n")
                 stats['validation_skipped'] += 1
             elif success:
-                print(f"   {msg}")
-                validation_log.write(f"Validation: PASSED\n")
+                print(f"   ✅ Output matches expected!")
+                validation_log.write(f"\n### ✅ Validation: PASSED\n\n")
+                validation_log.write(f"```\n{msg}\n```\n")
                 stats['validation_success'] += 1
             else:
-                print(f"   {msg}")
-                validation_log.write(f"Validation: FAILED\n{msg}\n")
+                print(f"   ❌ Validation failed (see log for details)")
+                validation_log.write(f"\n### ❌ Validation: FAILED\n\n")
+                validation_log.write(f"```\n{msg}\n```\n")
                 stats['validation_failed'] += 1
         else:
             print("   ℹ️  No expected output file to validate against")
-            validation_log.write("Validation: SKIPPED - No expected output\n")
+            validation_log.write(f"\n### ⏭️ Validation: SKIPPED\nNo expected output file to validate against\n")
             stats['validation_skipped'] += 1
         
-        validation_log.write("\n")    
-        print("   No expected output file to validate against")
-        stats['validation_skipped'] += 1
-        
+        validation_log.write("\n---\n")
         print()
     
     # Print summary
@@ -295,28 +306,32 @@ def main():
     print(f"  ✅ Passed:           {stats['validation_success']}")
     
     # Write summary to log
-    validation_log.write("=" * 70 + "\n")
-    validation_log.write("SUMMARY\n")
-    validation_log.write("=" * 70 + "\n")
-    validation_log.write(f"Total tests:           {stats['total']}\n\n")
-    validation_log.write("Analysis:\n")
-    validation_log.write(f"  Successful:          {stats['analyzed_success']}\n")
-    validation_log.write(f"  Failed:              {stats['analyzed_failed']}\n\n")
+    validation_log.write("\n## 📊 SUMMARY\n\n")
+    validation_log.write(f"**Total tests:** {stats['total']}\n\n")
+    
+    validation_log.write("### Analysis\n\n")
+    validation_log.write("| Status | Count |\n")
+    validation_log.write("|--------|-------|\n")
+    validation_log.write(f"| ✅ Successful | {stats['analyzed_success']} |\n")
+    validation_log.write(f"| ❌ Failed | {stats['analyzed_failed']} |\n\n")
     
     if validate_patterns_flag:
-        validation_log.write("Pattern Validation:\n")
-        validation_log.write(f"  Valid:               {stats['patterns_valid']}\n")
-        validation_log.write(f"  Invalid:             {stats['patterns_invalid']}\n\n")
+        validation_log.write("### Pattern Validation\n\n")
+        validation_log.write("| Status | Count |\n")
+        validation_log.write("|--------|-------|\n")
+        validation_log.write(f"| ✅ Valid | {stats['patterns_valid']} |\n")
+        validation_log.write(f"| ❌ Invalid | {stats['patterns_invalid']} |\n\n")
     
-    validation_log.write("Output Validation:\n")
-    validation_log.write(f"  Passed:              {stats['validation_success']}\n")
-    validation_log.write(f"  Failed:              {stats['validation_failed']}\n")
-    validation_log.write(f"  Skipped:             {stats['validation_skipped']}\n")
-    validation_log.write("=" * 70 + "\n")
+    validation_log.write("### Output Validation\n\n")
+    validation_log.write("| Status | Count |\n")
+    validation_log.write("|--------|-------|\n")
+    validation_log.write(f"| ✅ Passed | {stats['validation_success']} |\n")
+    validation_log.write(f"| ❌ Failed | {stats['validation_failed']} |\n")
+    validation_log.write(f"| ⏭️ Skipped | {stats['validation_skipped']} |\n\n")
     
     if stats['analyzed_success'] > 0:
         success_rate = (stats['validation_success'] / stats['analyzed_success']) * 100
-        validation_log.write(f"\nValidation Success Rate: {success_rate:.1f}%\n")
+        validation_log.write(f"### 🎯 Validation Success Rate: {success_rate:.1f}%\n")
     
     # Close log file
     validation_log.close()
