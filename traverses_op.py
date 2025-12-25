@@ -7,6 +7,28 @@ from Label import Label
 import inspect
 
 #######################
+# Helper Functions    #
+#######################
+
+def count_nested_ifs(node_body: list[ast.stmt]) -> int:
+    """
+    Counts the number of nested if statements in a list of statements.
+    This helps determine how many loop unrolls are needed to capture all control flow paths.
+    """
+    count = 0
+    for stmt in node_body:
+        if isinstance(stmt, ast.If):
+            count += 1
+            # Also count nested ifs within the if/else branches
+            count += count_nested_ifs(stmt.body)
+            count += count_nested_ifs(stmt.orelse)
+        elif isinstance(stmt, ast.While):
+            count += count_nested_ifs(stmt.body)
+        elif isinstance(stmt, ast.For):
+            count += count_nested_ifs(stmt.body)
+    return count
+
+#######################
 # Expression Handlers #
 ######################
 
@@ -298,7 +320,11 @@ def traverse_While(node: ast.While, policy: Policy, multiLabelling: MultiLabelli
             not_entered_labelling = not_entered_labelling.combinor(stmt_labelling)
     
     # When the loop is entered and executed
-    UNROLL_LIMIT = 2
+    # Adjust unroll limit based on nested if statements
+    # More nested ifs require more iterations to capture all paths
+    nested_if_count = count_nested_ifs(node.body)
+    UNROLL_LIMIT = 2 + nested_if_count  # Base of 2, plus 1 for each nested if
+    
     current_labelling = multiLabelling.copy()
     for _ in range(UNROLL_LIMIT):
         # Traverse the body of the while loop

@@ -91,11 +91,21 @@ class Vulnerabilities:
             
             numbered_vuln = f"{vuln_name}_{vulnerability_counters[vuln_name]}"
             
+            # Deduplicate flows - convert to tuple for hashing, then back to list
+            unique_flows = []
+            seen = set()
+            for flow in flows:
+                # Convert flow to a hashable representation
+                flow_key = (flow[0], tuple(tuple(s) for s in flow[1]))
+                if flow_key not in seen:
+                    seen.add(flow_key)
+                    unique_flows.append(flow)
+            
             output.append({
                 "vulnerability": numbered_vuln,
                 "source": [source_tuple[0], source_tuple[1]],
                 "sink": [sink[0], sink[1]],
-                "flows": flows
+                "flows": unique_flows
             })
             
             vulnerability_counters[vuln_name] += 1
