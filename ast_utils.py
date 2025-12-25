@@ -16,10 +16,6 @@ import ast
 from astexport.export import export_dict
 import json
 import traverses_op
-from Policy import Policy
-from MultiLabelling import MultiLabelling
-from Vulnerabilities import Vulnerabilities
-import MultiLabel
 
 def eval_expr(node, policy, multilabelling, vulns):
     # Delegate expression evaluation to traverses_op's dispatcher

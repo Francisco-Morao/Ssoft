@@ -51,8 +51,11 @@ class ProgramCounter:
         """ Combine all labels in the stack to form a multilabel representing the current pc level. For the detect_illegal_flows method. 
         #TODO: fact check this method 
         """
-        combined_ml = MultiLabel()
+        combined_ml = MultiLabel({})
         for label in self.stack:
             combined_ml = combined_ml.combinor(label)
         return combined_ml
+    
+    def is_empty(self) -> bool:
+        return len(self.stack) == 0
 

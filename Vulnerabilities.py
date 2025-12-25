@@ -38,6 +38,7 @@ class Vulnerabilities:
 
         vulnerability: str      # comes from pattern.vulnerability_name
         sink: Tuple[str, int]    # (sink_name, line_number)
+        implicit_flow: str  # "implicit" or "explicit"
         labels: List[Label] = field(default_factory=list) #represents the source and sanitizers
     
     vulnerabilities: List[Vulnerability] = field(default_factory=list)
@@ -48,12 +49,12 @@ class Vulnerabilities:
             vulnerability = self.Vulnerability(
                     vulnerability=pattern.vulnerability_name,
                     sink= (sink, sink_lineno),
+                    implicit_flow="explicit",
                     labels=[label]
                 )
-            if pattern.is_sink(sink):
-                self.vulnerabilities.append(vulnerability)
+            self.vulnerabilities.append(vulnerability)
 
-    def as_output(self, flow_type: str) -> List[Any]:
+    def as_output(self) -> List[Any]:
         """Returns the vulnerabilities in the specified output format."""
         
         if not self.vulnerabilities:
@@ -65,8 +66,10 @@ class Vulnerabilities:
         for vulnerability in self.vulnerabilities:
             vuln_name = vulnerability.vulnerability
             sink = vulnerability.sink
+            implicit_flow = vulnerability.implicit_flow
             
             for label in vulnerability.labels:
+                
                 for source_tuple, sanitizers_frozenset in label.flows:
                     
                     # Create a key for grouping
@@ -78,7 +81,7 @@ class Vulnerabilities:
                     # Convert sanitizers frozenset to list
                     sanitizers_list = [[s[0], s[1]] for s in sanitizers_frozenset]
                     
-                    grouped[key].append([flow_type, sanitizers_list])
+                    grouped[key].append([implicit_flow, sanitizers_list])
         
         # Build output with grouped flows
         output = []

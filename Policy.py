@@ -59,14 +59,6 @@ class Policy:
                 vulnerabilities.add(pattern.vulnerability_name)
 
         return vulnerabilities
-    
-    def add_pattern(self, pattern_str: str) -> None:
-        new_patterns = list()
-        for pattern in self.patterns:
-            new_pattern = pattern.add_source(pattern_str)
-            new_patterns.append(new_pattern)
-
-        self.patterns = new_patterns
 
     def detect_illegal_flows(self, sink_name: str, multilabel: MultiLabel) -> MultiLabel:
         """

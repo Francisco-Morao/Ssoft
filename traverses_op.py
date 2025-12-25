@@ -2,6 +2,7 @@ import ast
 from Policy import Policy
 from MultiLabel import MultiLabel
 from MultiLabelling import MultiLabelling
+import ProgramCounter
 from Vulnerabilities import Vulnerabilities
 from Label import Label
 import inspect
@@ -12,7 +13,7 @@ import inspect
 
 # Simple dispatcher for expression evaluation
     
-def traverse_Name(node: ast.Name, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None) -> MultiLabel:
+def traverse_Name(node: ast.Name, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None, program_counter: ProgramCounter = None) -> MultiLabel:
     """
     Handles traversal of ast.Name nodes.
     """
@@ -64,7 +65,7 @@ def traverse_Name(node: ast.Name, policy: Policy, multiLabelling: MultiLabelling
         return multilabel  
 
 
-def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None) -> MultiLabel:
+def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None, program_counter: ProgramCounter = None) -> MultiLabel:
     
     func_name = None
     ml = MultiLabel(policy.patterns)
@@ -74,14 +75,14 @@ def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling
     elif isinstance(node.func, ast.Attribute): # b.m()
         func_name = node.func.attr
         # Evaluate the entire attribute access (b.m) to get flows from both the object and the attribute
-        attr_ml = eval_expr(node.func, policy, multiLabelling, vulnerabilities, node)
+        attr_ml = eval_expr(node.func, policy, multiLabelling, vulnerabilities, parent=parent, program_counter=program_counter)
         ml = ml.combinor(attr_ml)
     
     if func_name is not None:
         lineno = getattr(node, "lineno", None)
         # Evaluate args and combine their multilabels
         for arg in node.args:
-            arg_ml = eval_expr(arg, policy, multiLabelling, vulnerabilities, node)
+            arg_ml = eval_expr(arg, policy, multiLabelling, vulnerabilities, parent=parent, program_counter=program_counter)
             ml = ml.combinor(arg_ml)
         
         # Detect illegal flows after all arguments are processed
@@ -100,30 +101,28 @@ def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling
     # take note of potential flows that originate from the pc level.    
     return ml
 
-def traverse_UnaryOp(node: ast.UnaryOp, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None) -> MultiLabel:
+def traverse_UnaryOp(node: ast.UnaryOp, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None, program_counter: ProgramCounter = None) -> MultiLabel:
     """
     Handles traversal of ast.UnaryOp nodes.
     """
-    # UnaryOp(unaryop op, expr operand)
     # Simply evaluate the operand and return its multilabel
-    return eval_expr(node.operand, policy, multiLabelling, vulnerabilities, parent)
+    return eval_expr(node.operand, policy, multiLabelling, vulnerabilities, parent=parent, program_counter=program_counter)
 
-def traverse_BoolOp(node: ast.BoolOp, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None) -> MultiLabel:
+def traverse_BoolOp(node: ast.BoolOp, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None, program_counter: ProgramCounter = None) -> MultiLabel:
     """
     Handles traversal of ast.BoolOp nodes.
     """
-    # BoolOp(boolop op, expr* values)
     # Implement logic for handling ast.BoolOp nodes
         
     combined_ml = MultiLabel(policy.patterns)
     for value in node.values:
-        value_ml = eval_expr(value, policy, multiLabelling, vulnerabilities, parent)
+        value_ml = eval_expr(value, policy, multiLabelling, vulnerabilities, parent=parent, program_counter=program_counter)
         combined_ml = combined_ml.combinor(value_ml)
         
     return combined_ml
 
 
-def traverse_Constant(node: ast.Constant, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None) -> MultiLabel: 
+def traverse_Constant(node: ast.Constant, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None, program_counter: ProgramCounter = None) -> MultiLabel: 
     """
     Handles traversal of ast.Constant nodes.
     """
@@ -131,33 +130,33 @@ def traverse_Constant(node: ast.Constant, policy: Policy, multiLabelling: MultiL
     # Simplesmente criamos uma nova label
     return MultiLabel(policy.patterns)
 
-def traverse_BinOp(node: ast.BinOp, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None) -> MultiLabel:
+def traverse_BinOp(node: ast.BinOp, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None, program_counter: ProgramCounter = None) -> MultiLabel:
     """
     Handles traversal of ast.BinOp nodes.
     """    
     # Combine multilabels from left and right expressions
-    left_ml = eval_expr(node.left, policy, multiLabelling, vulnerabilities, parent)
-    right_ml = eval_expr(node.right, policy, multiLabelling, vulnerabilities, parent)
+    left_ml = eval_expr(node.left, policy, multiLabelling, vulnerabilities, parent=parent, program_counter=program_counter)
+    right_ml = eval_expr(node.right, policy, multiLabelling, vulnerabilities, parent=parent, program_counter=program_counter)
     
     combinored_ml = left_ml.combinor(right_ml)
 
     return combinored_ml
 
-def traverse_Compare(node: ast.Compare, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None) -> MultiLabel:     
+def traverse_Compare(node: ast.Compare, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None, program_counter: ProgramCounter = None) -> MultiLabel:     
     """
     Handles traversal of ast.Compare nodes.
     """
     # Compare(expr left, cmpop* ops, expr* comparators)
     
-    left_ml = eval_expr(node.left, policy, multiLabelling, vulnerabilities, parent)
+    left_ml = eval_expr(node.left, policy, multiLabelling, vulnerabilities, parent=parent, program_counter=program_counter)
     
     for comparator in node.comparators:
-        comp_ml = eval_expr(comparator, policy, multiLabelling, vulnerabilities, parent)
+        comp_ml = eval_expr(comparator, policy, multiLabelling, vulnerabilities, parent=parent, program_counter=program_counter)
         left_ml = left_ml.combinor(comp_ml)
 
     return left_ml
 
-def traverse_Attribute(node: ast.Attribute, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None) -> MultiLabel:
+def traverse_Attribute(node: ast.Attribute, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None, program_counter: ProgramCounter = None) -> MultiLabel:
     """
     Handles traversal of ast.Attribute nodes. 
     """
@@ -165,7 +164,7 @@ def traverse_Attribute(node: ast.Attribute, policy: Policy, multiLabelling: Mult
     # Attribute(expr value, identifier attr, expr_context ctx)
     
     # Get the multilabel from the base object
-    value_ml = eval_expr(node.value, policy, multiLabelling, vulnerabilities, parent)
+    value_ml = eval_expr(node.value, policy, multiLabelling, vulnerabilities, parent=parent, program_counter=program_counter)
     
     lineno = getattr(node, "lineno", None)
     
@@ -181,15 +180,15 @@ def traverse_Attribute(node: ast.Attribute, policy: Policy, multiLabelling: Mult
     
     return combined_ml
     
-def traverse_Subscript(node: ast.Subscript, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None) -> MultiLabel:
+def traverse_Subscript(node: ast.Subscript, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None, program_counter: ProgramCounter = None) -> MultiLabel:
     """
     Handles traversal of ast.Subscript nodes.
     """
 
     # Subscript(expr value, expr slice, expr_context ctx)
 
-    value_ml = eval_expr(node.value, policy, multiLabelling, vulnerabilities, parent)
-    slice_ml = eval_expr(node.slice, policy, multiLabelling, vulnerabilities, parent)
+    value_ml = eval_expr(node.value, policy, multiLabelling, vulnerabilities, parent=parent, program_counter=program_counter)
+    slice_ml = eval_expr(node.slice, policy, multiLabelling, vulnerabilities, parent=parent, program_counter=program_counter)
     return value_ml.combinor(slice_ml)
 
 
@@ -197,7 +196,7 @@ def traverse_Subscript(node: ast.Subscript, policy: Policy, multiLabelling: Mult
 # Statement Handlers  #
 ######################
 
-def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities) -> MultiLabelling:
+def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, program_counter: ProgramCounter) -> MultiLabelling:
     """
     Handles traversal of ast.Assign nodes.
     """
@@ -207,8 +206,8 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
     
     lineno = getattr(node, "lineno", None)
     target_id = None
-    target_ml = eval_expr(target, policy, multiLabelling, vulnerabilities, node)
-    value_ml = eval_expr(node.value, policy, multiLabelling, vulnerabilities, node)
+    target_ml = eval_expr(target, policy, multiLabelling, vulnerabilities, parent=node, program_counter=program_counter)
+    value_ml = eval_expr(node.value, policy, multiLabelling, vulnerabilities, parent=node, program_counter=program_counter)
 
     if isinstance(target, ast.Attribute):
         target_id = target.value.id
@@ -226,8 +225,17 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
 
     add_detect_illegal_flows(node, target_id, value_ml, policy, vulnerabilities, lineno)
     # Update multilabelling for each target
-    for target in node.targets:
-        multiLabelling.mutator(target_id, value_ml)
+    
+    if not program_counter.is_empty():
+        pc_ml = program_counter.multi_label()
+        # Filter pc_ml to only include patterns with implicit flows enabled
+        implicit_pc_ml = MultiLabel(set())
+        for pattern, label in pc_ml.labels.items():
+            if pattern.is_implicit_flow():
+                implicit_pc_ml.labels[pattern] = label
+        value_ml = value_ml.combinor(implicit_pc_ml)
+    
+    multiLabelling.mutator(target_id, value_ml)
     # tanto para atributos e subscripts
     # precisamos de combinar os multilabels porque queremos manter a informação que 
     # já estava no value do atributo ou subscript com o target que está a ser atribuído
@@ -241,10 +249,9 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
     # depends. This parameter can be used when an assignment or function call are performed, in order to
     # take note of potential flows that originate from the pc level.    
 
-
     return multiLabelling
 
-def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities) -> tuple[MultiLabelling, MultiLabelling]:
+def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, program_counter: ProgramCounter) -> tuple[MultiLabelling, MultiLabelling]:
     """
     Handles traversal of ast.If nodes.
     Returns:
@@ -255,40 +262,35 @@ def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vu
     # and combine them so as to capture correctly the different paths that information flows might
     # be taking
 
-    # TODO: Not taking into account implicit flows yet
-
     # Evaluate the condition of the if statement
     
-    condition_ml = eval_expr(node.test, policy, multiLabelling, vulnerabilities, parent=node)
+    condition_ml = eval_expr(node.test, policy, multiLabelling, vulnerabilities, parent=node, program_counter=program_counter)
     
-    # if_branch_labelling = MultiLabelling(map={"if_condition": condition_ml})
-    
-    # multiLabelling.mutator("if_condition", condition_ml)
+    program_counter.push(condition_ml)
     
     # Create a copy of the multilabelling for the "if" branch
     if_branch_labelling = multiLabelling.copy()
 
     # Traverse the code inside the if
     for stmt in node.body:
-        stmt_labellings = traverse_stmt(stmt, policy, if_branch_labelling, vulnerabilities)
+        stmt_labellings = traverse_stmt(stmt, policy, if_branch_labelling, vulnerabilities, program_counter=program_counter)
         for stmt_labelling in stmt_labellings:
             if_branch_labelling = if_branch_labelling.combinor(stmt_labelling)
 
     # Create a copy of the multilabelling for the "else" branch
-    
-    # else_branch_labelling = MultiLabelling(map={"else_condition": condition_ml})
-
     else_branch_labelling = multiLabelling.copy()
     # Traverse the "else" branch if it exists
     if node.orelse:
         for stmt in node.orelse:
-            stmt_labellings = traverse_stmt(stmt, policy, else_branch_labelling, vulnerabilities)
+            stmt_labellings = traverse_stmt(stmt, policy, else_branch_labelling, vulnerabilities, program_counter=program_counter)
             for stmt_labelling in stmt_labellings:
                 else_branch_labelling = else_branch_labelling.combinor(stmt_labelling)
 
+    program_counter.pop()
+
     return if_branch_labelling, else_branch_labelling
 
-def traverse_While(node: ast.While, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities) -> tuple[MultiLabelling, MultiLabelling]:
+def traverse_While(node: ast.While, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, program_counter: ProgramCounter) -> tuple[MultiLabelling, MultiLabelling]:
     """
     Handles traversal of ast.While nodes.
     """
@@ -297,7 +299,7 @@ def traverse_While(node: ast.While, policy: Policy, multiLabelling: MultiLabelli
     # TODO : Not taking into account implicit flows yet
 
     # Evaluate the condition of the while loop
-    condition_ml = eval_expr(node.test, policy, multiLabelling, vulnerabilities, parent=node)
+    condition_ml = eval_expr(node.test, policy, multiLabelling, vulnerabilities, parent=node, program_counter = program_counter)
     
     # multiLabelling.mutator("while_condition", condition_ml)
     
@@ -305,7 +307,7 @@ def traverse_While(node: ast.While, policy: Policy, multiLabelling: MultiLabelli
     # When the loop is not entered at all
     not_entered_labelling = multiLabelling.copy()
     for stmt in node.orelse:
-        stmt_labellings = traverse_stmt(stmt, policy, not_entered_labelling, vulnerabilities)
+        stmt_labellings = traverse_stmt(stmt, policy, not_entered_labelling, vulnerabilities, program_counter)
         for stmt_labelling in stmt_labellings:
             not_entered_labelling = not_entered_labelling.combinor(stmt_labelling)
     
@@ -319,25 +321,25 @@ def traverse_While(node: ast.While, policy: Policy, multiLabelling: MultiLabelli
     for _ in range(UNROLL_LIMIT):
         # Traverse the body of the while loop
         for stmt in node.body:
-            stmt_labellings = traverse_stmt(stmt, policy, current_labelling, vulnerabilities)
+            stmt_labellings = traverse_stmt(stmt, policy, current_labelling, vulnerabilities, program_counter)
             for stmt_labelling in stmt_labellings:
                 current_labelling = current_labelling.combinor(stmt_labelling)
 
     # Return both flows: not entered and entered
     return [not_entered_labelling, current_labelling]
 
-def traverse_Expr(node: ast.Expr, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities) -> MultiLabelling:
+def traverse_Expr(node: ast.Expr, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, program_counter: ProgramCounter) -> MultiLabelling:
     """
     Handles traversal of ast.Expr nodes.
     """
     
     # Evaluate the expression (e.g., to detect sinks), but return the multiLabelling unchanged
-    eval_expr(node.value, policy, multiLabelling, vulnerabilities, parent=node)
+    eval_expr(node.value, policy, multiLabelling, vulnerabilities, parent=node, program_counter=program_counter)
     return multiLabelling
     
 
 
-def eval_expr(node: ast.AST, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None) -> MultiLabel:
+def eval_expr(node: ast.AST, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None, program_counter: ProgramCounter = None) -> MultiLabel:
     EXPR_DISPATCH = {
         ast.Name: traverse_Name,
         ast.Constant: traverse_Constant,
@@ -357,30 +359,30 @@ def eval_expr(node: ast.AST, policy: Policy, multiLabelling: MultiLabelling, vul
         # Standalone calls: sink(x) (checks for vulnerabilities)
         handler_signature = inspect.signature(handler)
         if 'parent' in handler_signature.parameters:
-            return handler(node, policy, multiLabelling, vulnerabilities, parent)
+            return handler(node, policy, multiLabelling, vulnerabilities, parent, program_counter)
         else:
-            return handler(node, policy, multiLabelling, vulnerabilities)
+            return handler(node, policy, multiLabelling, vulnerabilities, program_counter)
     # Fallback: return an empty multilabel across policy patterns
     return MultiLabel(policy.patterns)
 
 
 def traverse_stmt(node: ast.stmt, policy: Policy, multiLabelling: MultiLabelling, 
-                  vulnerabilities: Vulnerabilities) -> list[MultiLabelling]:
+                  vulnerabilities: Vulnerabilities, program_counter: ProgramCounter) -> list[MultiLabelling]:
     """
     Traverses a statement node and returns a list of updated multilabellings.
     This is the TOP LEVEL traversal that handles control flow.
     """
     # logger(f"Node type: {type(node).__name__}", "traverse_stmt", color=1)
     if isinstance(node, ast.Assign):
-        return [traverse_Assign(node, policy, multiLabelling, vulnerabilities)]
+        return [traverse_Assign(node, policy, multiLabelling, vulnerabilities, program_counter)]
     elif isinstance(node, ast.If):
-        if_labelling, else_labelling = traverse_If(node, policy, multiLabelling, vulnerabilities)
+        if_labelling, else_labelling = traverse_If(node, policy, multiLabelling, vulnerabilities, program_counter)
         return [if_labelling, else_labelling]
     elif isinstance(node, ast.While):
-        not_entered_labelling, entered_labelling = traverse_While(node, policy, multiLabelling, vulnerabilities)
+        not_entered_labelling, entered_labelling = traverse_While(node, policy, multiLabelling, vulnerabilities, program_counter)
         return [not_entered_labelling, entered_labelling]
     elif isinstance(node, ast.Expr):
-        return [traverse_Expr(node, policy, multiLabelling, vulnerabilities)]
+        return [traverse_Expr(node, policy, multiLabelling, vulnerabilities, program_counter)]
     else:
         return [multiLabelling]
     

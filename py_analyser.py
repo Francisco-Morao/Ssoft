@@ -9,6 +9,7 @@ from Pattern import Pattern
 from Policy import Policy
 from MultiLabelling import MultiLabelling
 from Vulnerabilities import Vulnerabilities
+from ProgramCounter import ProgramCounter
 
 def main():
 	parser = argparse.ArgumentParser()
@@ -31,6 +32,7 @@ def main():
 			sources=p.get("sources", []),
 			sinks=p.get("sinks", []),
 			sanitizers=p.get("sanitizers", []),
+			implicit_flows=p.get("implicit"),
 		)
 		for p in patterns_data
 	]
@@ -43,12 +45,13 @@ def main():
 	policy = Policy(patterns)
 	current_labelling = MultiLabelling(map={})
 	vulnerabilities = Vulnerabilities()
+	program_counter = ProgramCounter()
 
 	multilabellings = [current_labelling]
 	for stmt in ast_tree.body:
 		new_multilabellings = []
 		for labelling in multilabellings:
-			stmt_labellings = traverses_op.traverse_stmt(stmt, policy, labelling, vulnerabilities)
+			stmt_labellings = traverses_op.traverse_stmt(stmt, policy, labelling, vulnerabilities, program_counter)
 			new_multilabellings.extend(stmt_labellings)
 		multilabellings = new_multilabellings
 	
@@ -58,7 +61,7 @@ def main():
 	base = os.path.splitext(os.path.basename(slice_path))[0]
 	out_filename = f"{base}.output.json"
 	out_path = os.path.join(output_dir, out_filename)
-	output_data = vulnerabilities.as_output("explicit")	# "implicit" or "explicit" TODO CHANGE LATER
+	output_data = vulnerabilities.as_output()
 	f = open(out_path, "w", encoding="utf-8")
 	json.dump(output_data, f, ensure_ascii=False, indent=4)
 	f.close() 

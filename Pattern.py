@@ -18,6 +18,7 @@ class Pattern:
     sources: frozenset[str]
     sinks: frozenset[str]
     sanitizers: frozenset[str]
+    implicit_flows: str
 
     def __init__(
         self,
@@ -25,12 +26,14 @@ class Pattern:
         sources: Iterable[str],
         sinks: Iterable[str],
         sanitizers: Iterable[str],
+        implicit_flows: str
     ) -> None:
         """Initialize a pattern normalizing all collections to frozensets."""
         object.__setattr__(self, 'vulnerability_name', vulnerability_name)
         object.__setattr__(self, 'sources', frozenset(sources))
         object.__setattr__(self, 'sinks', frozenset(sinks))
         object.__setattr__(self, 'sanitizers', frozenset(sanitizers))
+        object.__setattr__(self, 'implicit_flows', implicit_flows)
 
     def is_source(self, item: str) -> bool:
         return item in self.sources
@@ -41,14 +44,7 @@ class Pattern:
     def is_sink(self, item: str) -> bool:
         return item in self.sinks
     
-    def add_source(self, source: str) -> 'Pattern':
-        """Returns a new Pattern with the given source added."""
-        new_sources = set(self.sources)
-        new_sources.add(source)
-        return Pattern(
-            vulnerability_name=self.vulnerability_name,
-            sources=new_sources,
-            sinks=self.sinks,
-            sanitizers=self.sanitizers
-        )
+    def is_implicit_flow(self) -> bool:
+        """Returns whether the pattern allows implicit flows."""
+        return self.implicit_flows == "yes"
 
