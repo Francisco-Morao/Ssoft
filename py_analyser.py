@@ -39,8 +39,8 @@ def main():
 
 	ast_tree = ast_utils.python_to_ast(code)
 
-	ast_json = ast_utils.python_to_ast_json(ast_tree)
-	print(ast_json)
+	# ast_json = ast_utils.python_to_ast_json(ast_tree)
+	# print(ast_json)
 
 	policy = Policy(patterns)
 	current_labelling = MultiLabelling(map={})

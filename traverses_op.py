@@ -89,6 +89,18 @@ def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling
             arg_ml = eval_expr(arg, policy, multiLabelling, vulnerabilities, parent=parent, program_counter=program_counter)
             ml = ml.combinor(arg_ml)
         
+        # Check for implicit flows from the program counter when calling a sink
+        if not program_counter.is_empty():
+            pc_ml = program_counter.multi_label()
+            # Filter pc_ml to only include patterns with implicit flows enabled
+            implicit_pc_ml = MultiLabel(set())
+            for pattern, label in pc_ml.labels.items():
+                if func_name in pattern.sinks and pattern.is_implicit_flow():
+                    implicit_pc_ml.labels[pattern] = label
+                    implicit_pc_ml.set_implicit_flag(pattern, IS_IMPLICIT)
+                    print(f"Implicit flow detected for pattern {pattern.vulnerability_name} at line {lineno}")
+            ml = ml.combinor(implicit_pc_ml)
+        
         # Detect illegal flows after all arguments are processed
         add_detect_illegal_flows(node, func_name, ml, policy, vulnerabilities, lineno)
         

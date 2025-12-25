@@ -94,11 +94,11 @@ class MultiLabel:
                 combined.labels[pattern] = label_other
                 is_implicit_other = other.get_implicit_flag(pattern)
                 combined.set_implicit_flag(pattern, is_implicit_other)
-        print("Other label implicit flags:", [(pattern.vulnerability_name, other.get_implicit_flag(pattern)) for pattern in other.labels.keys()])
-        print("Self label implicit flags:", [(pattern.vulnerability_name, self.get_implicit_flag(pattern)) for pattern in self.labels.keys()])
-        print("Combined label implicit flags:", [(pattern.vulnerability_name, combined.get_implicit_flag(pattern)) for pattern in combined.labels.keys()])
-        print()
-        print()
+        # print("Other label implicit flags:", [(pattern.vulnerability_name, other.get_implicit_flag(pattern)) for pattern in other.labels.keys()])
+        # print("Self label implicit flags:", [(pattern.vulnerability_name, self.get_implicit_flag(pattern)) for pattern in self.labels.keys()])
+        # print("Combined label implicit flags:", [(pattern.vulnerability_name, combined.get_implicit_flag(pattern)) for pattern in combined.labels.keys()])
+        # print()
+        # print()
 
 
 
