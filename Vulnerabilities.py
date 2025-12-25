@@ -49,11 +49,12 @@ class Vulnerabilities:
             vulnerability = self.Vulnerability(
                     vulnerability=pattern.vulnerability_name,
                     sink= (sink, sink_lineno),
-                    implicit_flow="explicit",
+                    #TODO:
+                    implicit_flow= "implicit" if multilabel.get_implicit_flag(pattern) else "explicit",
                     labels=[label]
                 )
             self.vulnerabilities.append(vulnerability)
-
+            print("is implicit:", multilabel.get_implicit_flag(pattern))
     def as_output(self) -> List[Any]:
         """Returns the vulnerabilities in the specified output format."""
         

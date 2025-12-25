@@ -7,6 +7,9 @@ from Vulnerabilities import Vulnerabilities
 from Label import Label
 import inspect
 
+IS_IMPLICIT = True
+IS_EXPLICIT = False
+
 #######################
 # Expression Handlers #
 ######################
@@ -28,6 +31,7 @@ def traverse_Name(node: ast.Name, policy: Policy, multiLabelling: MultiLabelling
         
         for pattern, label in multilabel.labels.items():
             new_multilabel.labels[pattern] = label.copy_with_updated_lines(node.id, lineno)
+            new_multilabel.set_implicit_flag(pattern, multilabel.get_implicit_flag(pattern))
         
         # Check if this variable name is also a source in the patterns
         for pattern in policy.patterns:
@@ -226,6 +230,7 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
     add_detect_illegal_flows(node, target_id, value_ml, policy, vulnerabilities, lineno)
     # Update multilabelling for each target
     
+    # Implicit flows from program counter
     if not program_counter.is_empty():
         pc_ml = program_counter.multi_label()
         # Filter pc_ml to only include patterns with implicit flows enabled
@@ -233,6 +238,8 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
         for pattern, label in pc_ml.labels.items():
             if pattern.is_implicit_flow():
                 implicit_pc_ml.labels[pattern] = label
+                implicit_pc_ml.set_implicit_flag(pattern, IS_IMPLICIT)
+                print(f"Implicit flow detected for pattern {pattern.vulnerability_name} at line {lineno}")
         value_ml = value_ml.combinor(implicit_pc_ml)
     
     multiLabelling.mutator(target_id, value_ml)
@@ -242,12 +249,6 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
     if isinstance(target, ast.Attribute) or isinstance(target, ast.Subscript):
         target_ml = target_ml.combinor(value_ml)
         multiLabelling.mutator(target_id, target_ml)
-
-    #TODO: detecting illegal implicit flows that arrive to potential sinks.
-    # Note that the stack can be managed implicitly by means of function calls. The traversal of a part of
-    # an AST then is parameterized by the security class of the conditions on which its execution
-    # depends. This parameter can be used when an assignment or function call are performed, in order to
-    # take note of potential flows that originate from the pc level.    
 
     return multiLabelling
 
@@ -266,6 +267,7 @@ def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vu
     
     condition_ml = eval_expr(node.test, policy, multiLabelling, vulnerabilities, parent=node, program_counter=program_counter)
     
+    # if(condition) 
     program_counter.push(condition_ml)
     
     # Create a copy of the multilabelling for the "if" branch
@@ -426,5 +428,6 @@ def add_detect_illegal_flows(node: ast.AST, func_name: str, ml: MultiLabel, poli
     illegal_multilabel = policy.detect_illegal_flows(func_name, ml)
     if illegal_multilabel:
         lineno = getattr(node, "lineno", None)
+        print("is implicit:", illegal_multilabel.implicit_flags)
         vulnerabilities.add_vulnerability(func_name, illegal_multilabel, lineno)
     return illegal_multilabel

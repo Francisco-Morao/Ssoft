@@ -83,7 +83,9 @@ class Policy:
                 for source, sanitizers in label.flows:
                     # Accept all sources in the label (including undefined variables treated as sources)
                     # Only filter out if the source is explicitly listed as a sink (not a source of taint)
+
                     illegal_multilabel.labels[pattern].flows.append((source, frozenset()))
+                    illegal_multilabel.set_implicit_flag(pattern, multilabel.get_implicit_flag(pattern))
                     # Find the corresponding flow in illegal_multilabel and update its sanitizers
                     idx = len(illegal_multilabel.labels[pattern].flows) - 1
                     updated_sanitizers = set()

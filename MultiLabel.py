@@ -28,6 +28,7 @@ class MultiLabel:
     # }
 
     labels: Dict[Pattern, Label]
+    implicit_flags: Dict[Pattern, bool] = None
 
     def __init__(self, patterns: Set[Pattern], label: Label = None):
         self.labels = dict()
@@ -80,9 +81,40 @@ class MultiLabel:
             if label_self and label_other:
                 # both MultiLabels have a label for this pattern
                 combined.labels[pattern] = label_self.combinor(label_other)
+                # Combine implicit flags if they exist
+                is_implicit_self = self.get_implicit_flag(pattern)
+                is_implicit_other = other.get_implicit_flag(pattern)
+                combined.set_implicit_flag(pattern, is_implicit_self or is_implicit_other)
+                
             elif label_self:
                 combined.labels[pattern] = label_self
+                is_implicit_self = self.get_implicit_flag(pattern)
+                combined.set_implicit_flag(pattern, is_implicit_self)
             elif label_other:
                 combined.labels[pattern] = label_other
+                is_implicit_other = other.get_implicit_flag(pattern)
+                combined.set_implicit_flag(pattern, is_implicit_other)
+        print("Other label implicit flags:", [(pattern.vulnerability_name, other.get_implicit_flag(pattern)) for pattern in other.labels.keys()])
+        print("Self label implicit flags:", [(pattern.vulnerability_name, self.get_implicit_flag(pattern)) for pattern in self.labels.keys()])
+        print("Combined label implicit flags:", [(pattern.vulnerability_name, combined.get_implicit_flag(pattern)) for pattern in combined.labels.keys()])
+        print()
+        print()
+
+
 
         return combined
+    
+    def set_implicit_flag(self, pattern: Pattern, is_implicit: bool) -> None:
+        """Set the implicit flow flag for a given pattern's label."""
+        #dont bother with setting if false
+        if not is_implicit:
+            return
+        if self.implicit_flags is None:
+            self.implicit_flags = dict()
+        self.implicit_flags[pattern] = is_implicit
+
+    def get_implicit_flag(self, pattern: Pattern) -> bool:
+        """Get the implicit flow flag for a given pattern's label."""
+        if self.implicit_flags is None:
+            return False
+        return self.implicit_flags.get(pattern, False)

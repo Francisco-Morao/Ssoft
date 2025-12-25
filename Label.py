@@ -29,6 +29,7 @@ class Label:
 
     # Changed structure to support multiple flows from the same source with different sanitizers
     # Each flow is represented as (source, frozenset of sanitizers) to allow for distinct paths
+    
     # sources are tuples of (source_name, line_number)
     # sanitizers are frozensets of tuples (sanitizer_name, line_number)
     flows: List[Tuple[Tuple[str, int], FrozenSet[Tuple[str, int]]]] = field(default_factory=list)

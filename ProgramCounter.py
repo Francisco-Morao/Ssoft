@@ -32,7 +32,7 @@ class ProgramCounter:
 
     # Pop it when exiting that region.
 
-    stack = []
+    stack = [] # de multilabels
 
     def push(self, label: MultiLabel):
         self.stack.append(label)
