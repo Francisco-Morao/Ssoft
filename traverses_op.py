@@ -249,6 +249,10 @@ def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vu
     
     condition_ml = eval_expr(node.test, policy, multiLabelling, vulnerabilities, parent=node)
     
+    # if_branch_labelling = MultiLabelling(map={"if_condition": condition_ml})
+    
+    # multiLabelling.mutator("if_condition", condition_ml)
+    
     # Create a copy of the multilabelling for the "if" branch
     if_branch_labelling = multiLabelling.copy()
 
@@ -259,8 +263,10 @@ def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vu
             if_branch_labelling = if_branch_labelling.combinor(stmt_labelling)
 
     # Create a copy of the multilabelling for the "else" branch
-    else_branch_labelling = multiLabelling.copy()
+    
+    # else_branch_labelling = MultiLabelling(map={"else_condition": condition_ml})
 
+    else_branch_labelling = multiLabelling.copy()
     # Traverse the "else" branch if it exists
     if node.orelse:
         for stmt in node.orelse:
@@ -270,14 +276,44 @@ def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vu
 
     return if_branch_labelling, else_branch_labelling
 
-def traverse_While(node: ast.While, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities) -> MultiLabelling:
+def traverse_While(node: ast.While, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities) -> tuple[MultiLabelling, MultiLabelling]:
     """
     Handles traversal of ast.While nodes.
     """
-    pass
-    # TODO
+            #   | While(expr test, stmt* body, stmt* orelse)
 
-    # Implement logic for handling ast.While nodes
+    # TODO : Not taking into account implicit flows yet
+
+    # Evaluate the condition of the while loop
+    condition_ml = eval_expr(node.test, policy, multiLabelling, vulnerabilities, parent=node)
+    
+    # multiLabelling.mutator("while_condition", condition_ml)
+    
+    # In this case, we skip the body while is false and go to orelse
+    # When the loop is not entered at all
+    not_entered_labelling = multiLabelling.copy()
+    for stmt in node.orelse:
+        stmt_labellings = traverse_stmt(stmt, policy, not_entered_labelling, vulnerabilities)
+        for stmt_labelling in stmt_labellings:
+            not_entered_labelling = not_entered_labelling.combinor(stmt_labelling)
+    
+    # When the loop is entered and executed
+    UNROLL_LIMIT = 2
+    current_labelling = multiLabelling.copy()
+    for _ in range(UNROLL_LIMIT):
+        # Traverse the body of the while loop
+        for stmt in node.body:
+            stmt_labellings = traverse_stmt(stmt, policy, current_labelling, vulnerabilities)
+            for stmt_labelling in stmt_labellings:
+                current_labelling = current_labelling.combinor(stmt_labelling)
+
+    for stmt in node.orelse:
+        stmt_labellings = traverse_stmt(stmt, policy, current_labelling, vulnerabilities)
+        for stmt_labelling in stmt_labellings:
+            current_labelling = current_labelling.combinor(stmt_labelling)
+
+    # Return both flows: not entered and entered
+    return [not_entered_labelling, current_labelling]
 
 def traverse_Expr(node: ast.Expr, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities) -> MultiLabelling:
     """
@@ -330,7 +366,8 @@ def traverse_stmt(node: ast.stmt, policy: Policy, multiLabelling: MultiLabelling
         if_labelling, else_labelling = traverse_If(node, policy, multiLabelling, vulnerabilities)
         return [if_labelling, else_labelling]
     elif isinstance(node, ast.While):
-        return [traverse_While(node, policy, multiLabelling, vulnerabilities)]
+        not_entered_labelling, entered_labelling = traverse_While(node, policy, multiLabelling, vulnerabilities)
+        return [not_entered_labelling, entered_labelling]
     elif isinstance(node, ast.Expr):
         return [traverse_Expr(node, policy, multiLabelling, vulnerabilities)]
     else:
