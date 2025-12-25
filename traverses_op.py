@@ -300,6 +300,8 @@ def traverse_While(node: ast.While, policy: Policy, multiLabelling: MultiLabelli
 
     # Evaluate the condition of the while loop
     condition_ml = eval_expr(node.test, policy, multiLabelling, vulnerabilities, parent=node, program_counter = program_counter)
+
+    program_counter.push(condition_ml)
     
     # multiLabelling.mutator("while_condition", condition_ml)
     
@@ -324,6 +326,8 @@ def traverse_While(node: ast.While, policy: Policy, multiLabelling: MultiLabelli
             stmt_labellings = traverse_stmt(stmt, policy, current_labelling, vulnerabilities, program_counter)
             for stmt_labelling in stmt_labellings:
                 current_labelling = current_labelling.combinor(stmt_labelling)
+
+    program_counter.pop()
 
     # Return both flows: not entered and entered
     return [not_entered_labelling, current_labelling]
