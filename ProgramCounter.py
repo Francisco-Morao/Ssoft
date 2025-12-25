@@ -18,6 +18,7 @@
 
 import ast
 import dataclasses 
+from MultiLabel import MultiLabel
 
 @dataclasses.dataclass
 class ProgramCounter:
@@ -33,25 +34,23 @@ class ProgramCounter:
 
     stack = []
 
-    def push(self, label):
+    def push(self, label: MultiLabel):
         self.stack.append(label)
 
     def pop(self):
         if self.stack:
             self.stack.pop()
 
-    def current_label(self):
+    def current_label(self) -> MultiLabel:
         if self.stack:
             return self.stack[-1]
         else:
             return None
     
-    def multi_label(self):
+    def multi_label(self) -> MultiLabel:
         """ Combine all labels in the stack to form a multilabel representing the current pc level. For the detect_illegal_flows method. 
         #TODO: fact check this method 
         """
-        from MultiLabel import MultiLabel
-
         combined_ml = MultiLabel()
         for label in self.stack:
             combined_ml = combined_ml.combinor(label)

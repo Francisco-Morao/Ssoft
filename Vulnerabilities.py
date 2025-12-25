@@ -93,12 +93,8 @@ class Vulnerabilities:
             
             # Deduplicate flows - convert to tuple for hashing, then back to list
             unique_flows = []
-            seen = set()
             for flow in flows:
-                # Convert flow to a hashable representation
-                flow_key = (flow[0], tuple(tuple(s) for s in flow[1]))
-                if flow_key not in seen:
-                    seen.add(flow_key)
+                if flow not in unique_flows:
                     unique_flows.append(flow)
             
             output.append({

@@ -7,28 +7,6 @@ from Label import Label
 import inspect
 
 #######################
-# Helper Functions    #
-#######################
-
-def count_nested_ifs(node_body: list[ast.stmt]) -> int:
-    """
-    Counts the number of nested if statements in a list of statements.
-    This helps determine how many loop unrolls are needed to capture all control flow paths.
-    """
-    count = 0
-    for stmt in node_body:
-        if isinstance(stmt, ast.If):
-            count += 1
-            # Also count nested ifs within the if/else branches
-            count += count_nested_ifs(stmt.body)
-            count += count_nested_ifs(stmt.orelse)
-        elif isinstance(stmt, ast.While):
-            count += count_nested_ifs(stmt.body)
-        elif isinstance(stmt, ast.For):
-            count += count_nested_ifs(stmt.body)
-    return count
-
-#######################
 # Expression Handlers #
 ######################
 
@@ -345,11 +323,6 @@ def traverse_While(node: ast.While, policy: Policy, multiLabelling: MultiLabelli
             for stmt_labelling in stmt_labellings:
                 current_labelling = current_labelling.combinor(stmt_labelling)
 
-    for stmt in node.orelse:
-        stmt_labellings = traverse_stmt(stmt, policy, current_labelling, vulnerabilities)
-        for stmt_labelling in stmt_labellings:
-            current_labelling = current_labelling.combinor(stmt_labelling)
-
     # Return both flows: not entered and entered
     return [not_entered_labelling, current_labelling]
 
@@ -411,6 +384,25 @@ def traverse_stmt(node: ast.stmt, policy: Policy, multiLabelling: MultiLabelling
     else:
         return [multiLabelling]
     
+#######################
+# Helper Functions    #
+#######################
+
+def count_nested_ifs(node_body: list[ast.stmt]) -> int:
+    """
+    Counts the number of nested if statements in a list of statements.
+    This helps determine how many loop unrolls are needed to capture all control flow paths.
+    """
+    count = 0
+    for stmt in node_body:
+        if isinstance(stmt, ast.If):
+            count += 1
+            # Also count nested ifs within the if/else branches
+            count += count_nested_ifs(stmt.body)
+            count += count_nested_ifs(stmt.orelse)
+        elif isinstance(stmt, ast.While):
+            count += count_nested_ifs(stmt.body)
+    return count
 
 def logger(message: str, function_name: str = "", color: int = 1) -> None:
     """
