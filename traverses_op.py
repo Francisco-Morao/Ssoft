@@ -115,6 +115,11 @@ def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling
         # Add as sanitizer only to existing flows from sources
         ml.add_sanitizer(func_name, lineno)
 
+    #TODO: detecting illegal implicit flows that arrive to potential sinks.
+    # Note that the stack can be managed implicitly by means of function calls. The traversal of a part of
+    # an AST then is parameterized by the security class of the conditions on which its execution
+    # depends. This parameter can be used when an assignment or function call are performed, in order to
+    # take note of potential flows that originate from the pc level.    
     return ml
 
 def traverse_UnaryOp(node: ast.UnaryOp, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None) -> MultiLabel:
@@ -251,6 +256,13 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
     if isinstance(target, ast.Attribute) or isinstance(target, ast.Subscript):
         target_ml = target_ml.combinor(value_ml)
         multiLabelling.mutator(target_id, target_ml)
+
+    #TODO: detecting illegal implicit flows that arrive to potential sinks.
+    # Note that the stack can be managed implicitly by means of function calls. The traversal of a part of
+    # an AST then is parameterized by the security class of the conditions on which its execution
+    # depends. This parameter can be used when an assignment or function call are performed, in order to
+    # take note of potential flows that originate from the pc level.    
+
 
     return multiLabelling
 

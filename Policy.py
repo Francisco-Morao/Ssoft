@@ -91,7 +91,6 @@ class Policy:
                 for source, sanitizers in label.flows:
                     # Accept all sources in the label (including undefined variables treated as sources)
                     # Only filter out if the source is explicitly listed as a sink (not a source of taint)
-                    # Actually, we should include all flows - the label already has the right flows
                     illegal_multilabel.labels[pattern].flows.append((source, frozenset()))
                     # Find the corresponding flow in illegal_multilabel and update its sanitizers
                     idx = len(illegal_multilabel.labels[pattern].flows) - 1
@@ -100,9 +99,22 @@ class Policy:
                         if pattern.is_sanitizer(sanitizer[0]):
                             updated_sanitizers.add(sanitizer)
                     illegal_multilabel.labels[pattern].flows[idx] = (source, frozenset(updated_sanitizers))
-                
+        
         # Return None if no illegal flows were found
         if not any(illegal_multilabel.labels[pattern].flows for pattern in illegal_multilabel.labels):
             return None
 
         return illegal_multilabel
+    
+    def detect_implicit_flows(self, sink_name: str, multilabel: MultiLabel) -> MultiLabel:
+        """
+        1. Extend the class Policy with an operation that, given a name and a multilabel that
+        describes the information that is flowing from the program counter, determines the corresponding
+        illegal flows, i.e., which part of the multilabel is concerned with implict flows and has the given
+        name as a sink. 
+        It should return a multilabel that is like the one received as parameter, but that only
+        assigns labels to patterns for which an illegal flow is taking place.
+        """
+        illegal_multilabel = MultiLabel(multilabel.labels.keys())
+
+        #TODO: Implement implicit flow detection logic
