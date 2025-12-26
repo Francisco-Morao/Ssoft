@@ -107,10 +107,10 @@ def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling
             
             # Combine ml with PC for sink detection
             ml_with_pc = ml.combinor(implicit_pc_ml)
-            # Detect illegal flows with PC included
+            # Detect implicit illegal flows with PC included
             add_detect_illegal_flows(node, func_name, ml_with_pc, policy, vulnerabilities, lineno)
         else:
-            # Detect illegal flows without PC
+            # Detect explicit illegal flows without PC
             add_detect_illegal_flows(node, func_name, ml, policy, vulnerabilities, lineno) 
     return ml
 
@@ -228,7 +228,7 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
     else:
         target_id = target.id
     
-    # Detect explicit flows FIRST (before combining with program counter)
+    # Detect explicit flows
     add_detect_illegal_flows(node, target_id, value_ml, policy, vulnerabilities, lineno)
     
     # Implicit flows from program counter
