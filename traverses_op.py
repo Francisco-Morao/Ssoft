@@ -95,7 +95,7 @@ def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling
             # Filter pc_ml to only include patterns with implicit flows enabled
             implicit_pc_ml = MultiLabel(set())
             for pattern, label in pc_ml.labels.items():
-                if func_name in pattern.sinks and pattern.is_implicit_flow():
+                if pattern.is_implicit_flow():
                     implicit_pc_ml.labels[pattern] = label
                     implicit_pc_ml.set_implicit_flag(pattern, IS_IMPLICIT)
                     print(f"Implicit flow detected for pattern {pattern.vulnerability_name} at line {lineno}")
@@ -122,9 +122,7 @@ def traverse_UnaryOp(node: ast.UnaryOp, policy: Policy, multiLabelling: MultiLab
 def traverse_BoolOp(node: ast.BoolOp, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None, program_counter: ProgramCounter = None) -> MultiLabel:
     """
     Handles traversal of ast.BoolOp nodes.
-    """
-    # Implement logic for handling ast.BoolOp nodes
-        
+    """        
     combined_ml = MultiLabel(policy.patterns)
     for value in node.values:
         value_ml = eval_expr(value, policy, multiLabelling, vulnerabilities, parent=parent, program_counter=program_counter)
@@ -156,9 +154,7 @@ def traverse_BinOp(node: ast.BinOp, policy: Policy, multiLabelling: MultiLabelli
 def traverse_Compare(node: ast.Compare, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None, program_counter: ProgramCounter = None) -> MultiLabel:     
     """
     Handles traversal of ast.Compare nodes.
-    """
-    # Compare(expr left, cmpop* ops, expr* comparators)
-    
+    """    
     left_ml = eval_expr(node.left, policy, multiLabelling, vulnerabilities, parent=parent, program_counter=program_counter)
     
     for comparator in node.comparators:
@@ -171,8 +167,6 @@ def traverse_Attribute(node: ast.Attribute, policy: Policy, multiLabelling: Mult
     """
     Handles traversal of ast.Attribute nodes. 
     """
-    
-    # Attribute(expr value, identifier attr, expr_context ctx)
     
     # Get the multilabel from the base object
     value_ml = eval_expr(node.value, policy, multiLabelling, vulnerabilities, parent=parent, program_counter=program_counter)
@@ -196,10 +190,9 @@ def traverse_Subscript(node: ast.Subscript, policy: Policy, multiLabelling: Mult
     Handles traversal of ast.Subscript nodes.
     """
 
-    # Subscript(expr value, expr slice, expr_context ctx)
-
     value_ml = eval_expr(node.value, policy, multiLabelling, vulnerabilities, parent=parent, program_counter=program_counter)
     slice_ml = eval_expr(node.slice, policy, multiLabelling, vulnerabilities, parent=parent, program_counter=program_counter)
+
     return value_ml.combinor(slice_ml)
 
 
@@ -212,7 +205,6 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
     Handles traversal of ast.Assign nodes.
     """
 
-    # Assign(expr* targets, expr value, string? type_comment)
     target = node.targets[0]
     
     lineno = getattr(node, "lineno", None)
@@ -303,16 +295,11 @@ def traverse_While(node: ast.While, policy: Policy, multiLabelling: MultiLabelli
     """
     Handles traversal of ast.While nodes.
     """
-            #   | While(expr test, stmt* body, stmt* orelse)
-
-    # TODO : Not taking into account implicit flows yet
 
     # Evaluate the condition of the while loop
     condition_ml = eval_expr(node.test, policy, multiLabelling, vulnerabilities, parent=node, program_counter = program_counter)
 
     program_counter.push(condition_ml)
-    
-    # multiLabelling.mutator("while_condition", condition_ml)
     
     # In this case, we skip the body while is false and go to orelse
     # When the loop is not entered at all
@@ -385,7 +372,6 @@ def traverse_stmt(node: ast.stmt, policy: Policy, multiLabelling: MultiLabelling
     Traverses a statement node and returns a list of updated multilabellings.
     This is the TOP LEVEL traversal that handles control flow.
     """
-    # logger(f"Node type: {type(node).__name__}", "traverse_stmt", color=1)
     if isinstance(node, ast.Assign):
         return [traverse_Assign(node, policy, multiLabelling, vulnerabilities, program_counter)]
     elif isinstance(node, ast.If):
@@ -412,7 +398,7 @@ def count_nested_ifs(node_body: list[ast.stmt]) -> int:
     for stmt in node_body:
         if isinstance(stmt, ast.If):
             count += 1
-            # Also count nested ifs within the if/else branches
+            # count nested ifs within the if/else branches
             count += count_nested_ifs(stmt.body)
             count += count_nested_ifs(stmt.orelse)
         elif isinstance(stmt, ast.While):
