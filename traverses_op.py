@@ -89,6 +89,12 @@ def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling
             arg_ml = eval_expr(arg, policy, multiLabelling, vulnerabilities, parent=parent, program_counter=program_counter)
             ml = ml.combinor(arg_ml)
         
+        # Add as source if it's a source function
+        ml.add_source(func_name, lineno)
+        
+        # Add as sanitizer only to existing flows from sources
+        ml.add_sanitizer(func_name, lineno)
+        
         # Check for implicit flows from the program counter when calling a sink
         if not program_counter.is_empty():
             pc_ml = program_counter.multi_label()
@@ -98,18 +104,14 @@ def traverse_Call(node: ast.Call, policy: Policy, multiLabelling: MultiLabelling
                 if pattern.is_implicit_flow():
                     implicit_pc_ml.labels[pattern] = label
                     implicit_pc_ml.set_implicit_flag(pattern, IS_IMPLICIT)
-                    print(f"Implicit flow detected for pattern {pattern.vulnerability_name} at line {lineno}")
-            ml = ml.combinor(implicit_pc_ml)
-        
-        # Detect illegal flows after all arguments are processed
-        add_detect_illegal_flows(node, func_name, ml, policy, vulnerabilities, lineno)
-        
-        # Add as source if it's a source function
-        ml.add_source(func_name, lineno)
-        
-        # Add as sanitizer only to existing flows from sources
-        ml.add_sanitizer(func_name, lineno)
-        
+            
+            # Combine ml with PC for sink detection
+            ml_with_pc = ml.combinor(implicit_pc_ml)
+            # Detect illegal flows with PC included
+            add_detect_illegal_flows(node, func_name, ml_with_pc, policy, vulnerabilities, lineno)
+        else:
+            # Detect illegal flows without PC
+            add_detect_illegal_flows(node, func_name, ml, policy, vulnerabilities, lineno) 
     return ml
 
 def traverse_UnaryOp(node: ast.UnaryOp, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, parent: ast.AST = None, program_counter: ProgramCounter = None) -> MultiLabel:
@@ -225,9 +227,9 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
         add_detect_illegal_flows(node, target_id, target_ml, policy, vulnerabilities, lineno)
     else:
         target_id = target.id
-
+    
+    # Detect explicit flows FIRST (before combining with program counter)
     add_detect_illegal_flows(node, target_id, value_ml, policy, vulnerabilities, lineno)
-    # Update multilabelling for each target
     
     # Implicit flows from program counter
     if not program_counter.is_empty():
@@ -238,9 +240,13 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
             if pattern.is_implicit_flow():
                 implicit_pc_ml.labels[pattern] = label
                 implicit_pc_ml.set_implicit_flag(pattern, IS_IMPLICIT)
-                print(f"Implicit flow detected for pattern {pattern.vulnerability_name} at line {lineno}")
+        
+        # Detect implicit flows separately
+        add_detect_illegal_flows(node, target_id, implicit_pc_ml, policy, vulnerabilities, lineno)
+        
+        # Combine for multilabelling update
         value_ml = value_ml.combinor(implicit_pc_ml)
-    
+
     multiLabelling.mutator(target_id, value_ml)
     # tanto para atributos e subscripts
     # precisamos de combinar os multilabels porque queremos manter a informação que 
@@ -280,12 +286,10 @@ def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vu
 
     # Create a copy of the multilabelling for the "else" branch
     else_branch_labelling = multiLabelling.copy()
-    # Traverse the "else" branch if it exists
-    if node.orelse:
-        for stmt in node.orelse:
-            stmt_labellings = traverse_stmt(stmt, policy, else_branch_labelling, vulnerabilities, program_counter=program_counter)
-            for stmt_labelling in stmt_labellings:
-                else_branch_labelling = else_branch_labelling.combinor(stmt_labelling)
+    for stmt in node.orelse:
+        stmt_labellings = traverse_stmt(stmt, policy, else_branch_labelling, vulnerabilities, program_counter=program_counter)
+        for stmt_labelling in stmt_labellings:
+            else_branch_labelling = else_branch_labelling.combinor(stmt_labelling)
 
     program_counter.pop()
 
@@ -325,7 +329,6 @@ def traverse_While(node: ast.While, policy: Policy, multiLabelling: MultiLabelli
 
     program_counter.pop()
 
-    # Return both flows: not entered and entered
     return [not_entered_labelling, current_labelling]
 
 def traverse_Expr(node: ast.Expr, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, program_counter: ProgramCounter) -> MultiLabelling:
@@ -421,6 +424,5 @@ def add_detect_illegal_flows(node: ast.AST, func_name: str, ml: MultiLabel, poli
     illegal_multilabel = policy.detect_illegal_flows(func_name, ml)
     if illegal_multilabel:
         lineno = getattr(node, "lineno", None)
-        print("is implicit:", illegal_multilabel.implicit_flags)
         vulnerabilities.add_vulnerability(func_name, illegal_multilabel, lineno)
     return illegal_multilabel

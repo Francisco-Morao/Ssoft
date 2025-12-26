@@ -49,12 +49,10 @@ class Vulnerabilities:
             vulnerability = self.Vulnerability(
                     vulnerability=pattern.vulnerability_name,
                     sink= (sink, sink_lineno),
-                    #TODO:
                     implicit_flow= "implicit" if multilabel.get_implicit_flag(pattern) else "explicit",
                     labels=[label]
                 )
             self.vulnerabilities.append(vulnerability)
-            print("is implicit:", multilabel.get_implicit_flag(pattern))
     def as_output(self) -> List[Any]:
         """Returns the vulnerabilities in the specified output format."""
         
@@ -95,7 +93,7 @@ class Vulnerabilities:
             
             numbered_vuln = f"{vuln_name}_{vulnerability_counters[vuln_name]}"
             
-            # Deduplicate flows - convert to tuple for hashing, then back to list
+            # Deduplicate flows
             unique_flows = []
             for flow in flows:
                 if flow not in unique_flows:
