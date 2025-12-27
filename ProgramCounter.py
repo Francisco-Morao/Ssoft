@@ -48,13 +48,41 @@ class ProgramCounter:
             return None
     
     def multi_label(self) -> MultiLabel:
-        """ Combine all labels in the stack to form a multilabel representing the current pc level. For the detect_illegal_flows method. 
-        #TODO: fact check this method 
+        """Combine all labels in the stack to form a multilabel representing the current pc level.
+        For nested guards (guarded regions), flows from outer guards also inherit sanitizers from inner guards.
         """
-        combined_ml = MultiLabel({})
-        for label in self.stack:
-            combined_ml = combined_ml.combinor(label)
-        return combined_ml
+        if not self.stack:
+            return MultiLabel(set())
+        
+        # Start with the first (outermost) guard by combining with it
+        result = self.stack[0].combinor(MultiLabel(set()))
+        
+        # For each additional (inner) guard level
+        for level in range(1, len(self.stack)):
+            current_guard_ml = self.stack[level]
+            
+            # Extract ALL sanitizers from this guard level (across all patterns)
+            guard_sanitizers = set()
+            for pattern_label in current_guard_ml.labels.values():
+                for src, sans in pattern_label.flows:
+                    guard_sanitizers.update(sans)
+            
+            # Add flows from this guard directly
+            result = result.combinor(current_guard_ml)
+            
+            # Apply guard sanitizers to flows from ALL previous levels (guarded region concept)
+            if guard_sanitizers:
+                for pattern in result.labels.keys():
+                    # Look at flows from all previous guard levels for this pattern
+                    for prev_level in range(level):
+                        if pattern in self.stack[prev_level].labels:
+                            prev_label = self.stack[prev_level].labels[pattern]
+                            # For each flow in the previous level, add a version with guard sanitizers
+                            for src, prev_sans in prev_label.flows:
+                                new_sans = frozenset(prev_sans | guard_sanitizers)
+                                result.labels[pattern].add_flow(src[0], src[1], new_sans)
+        
+        return result
     
     def is_empty(self) -> bool:
         return len(self.stack) == 0

@@ -241,12 +241,11 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
                 implicit_pc_ml.labels[pattern] = label
                 implicit_pc_ml.set_implicit_flag(pattern, IS_IMPLICIT)
         
-        # Detect implicit flows separately
+        # Detect implicit flows
         add_detect_illegal_flows(node, target_id, implicit_pc_ml, policy, vulnerabilities, lineno)
         
         # Combine for multilabelling update
         value_ml = value_ml.combinor(implicit_pc_ml)
-
     multiLabelling.mutator(target_id, value_ml)
     # tanto para atributos e subscripts
     # precisamos de combinar os multilabels porque queremos manter a informação que 
@@ -260,9 +259,6 @@ def traverse_Assign(node: ast.Assign, policy: Policy, multiLabelling: MultiLabel
 def traverse_If(node: ast.If, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, program_counter: ProgramCounter) -> tuple[MultiLabelling, MultiLabelling]:
     """
     Handles traversal of ast.If nodes.
-    Returns:
-        - MultiLabelling for the "if" branch.
-        - MultiLabelling for the "else" branch.
     """
     # For statements that introduce more than one control path, create copies of multilabellings
     # and combine them so as to capture correctly the different paths that information flows might
@@ -301,12 +297,6 @@ def traverse_While(node: ast.While, policy: Policy, multiLabelling: MultiLabelli
     """
 
     # Evaluate the condition of the while loop
-    condition_ml = eval_expr(node.test, policy, multiLabelling, vulnerabilities, parent=node, program_counter = program_counter)
-
-    program_counter.push(condition_ml)
-    
-    # In this case, we skip the body while is false and go to orelse
-    # When the loop is not entered at all
     not_entered_labelling = multiLabelling.copy()
     for stmt in node.orelse:
         stmt_labellings = traverse_stmt(stmt, policy, not_entered_labelling, vulnerabilities, program_counter)
@@ -320,16 +310,28 @@ def traverse_While(node: ast.While, policy: Policy, multiLabelling: MultiLabelli
     UNROLL_LIMIT = 2 + nested_if_count  # Base of 2, plus 1 for each nested if
     
     current_labelling = multiLabelling.copy()
+    
+    # Accumulate all condition states across iterations to capture different sanitization paths
+    accumulated_condition_ml = MultiLabel(policy.patterns)
+    
     for _ in range(UNROLL_LIMIT):
+        # Re-evaluate condition each iteration as variables may change
+        condition_ml = eval_expr(node.test, policy, current_labelling, vulnerabilities, parent=node, program_counter=program_counter)
+        # Accumulate this iteration's condition with previous iterations
+        accumulated_condition_ml = accumulated_condition_ml.combinor(condition_ml)
+        # Push the accumulated condition to capture all possible paths
+        program_counter.push(accumulated_condition_ml)
+        
         # Traverse the body of the while loop
         for stmt in node.body:
             stmt_labellings = traverse_stmt(stmt, policy, current_labelling, vulnerabilities, program_counter)
             for stmt_labelling in stmt_labellings:
                 current_labelling = current_labelling.combinor(stmt_labelling)
 
-    program_counter.pop()
+        program_counter.pop()
 
     return [not_entered_labelling, current_labelling]
+
 
 def traverse_Expr(node: ast.Expr, policy: Policy, multiLabelling: MultiLabelling, vulnerabilities: Vulnerabilities, program_counter: ProgramCounter) -> MultiLabelling:
     """
@@ -381,8 +383,7 @@ def traverse_stmt(node: ast.stmt, policy: Policy, multiLabelling: MultiLabelling
         if_labelling, else_labelling = traverse_If(node, policy, multiLabelling, vulnerabilities, program_counter)
         return [if_labelling, else_labelling]
     elif isinstance(node, ast.While):
-        not_entered_labelling, entered_labelling = traverse_While(node, policy, multiLabelling, vulnerabilities, program_counter)
-        return [not_entered_labelling, entered_labelling]
+        return traverse_While(node, policy, multiLabelling, vulnerabilities, program_counter)
     elif isinstance(node, ast.Expr):
         return [traverse_Expr(node, policy, multiLabelling, vulnerabilities, program_counter)]
     else:
