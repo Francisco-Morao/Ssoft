@@ -28,10 +28,10 @@
     "implicit": "yes"
   },
   {
-    "vulnerability": "YAML Injection",
-    "sources": ["get", "QueryDict", "FileUpload", "ConfigForm"],
-    "sanitizers": ["yaml.safe_load"],
-    "sinks": ["yaml.load"],
+    "vulnerability": "Server Side Request Forgery",
+    "sources": ["get", "QueryDict", "RequestForm"],
+    "sanitizers": ["urlparse", "validate_host", "allowlist"],
+    "sinks": ["requests.get", "requests.post", "urllib.request.urlopen", "http.client.HTTPConnection"],
     "implicit": "no"
   }
 ]
