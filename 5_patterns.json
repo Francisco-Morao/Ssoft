@@ -1,0 +1,37 @@
+[
+  {
+    "vulnerability": "Command Injection",
+    "sources": ["get", "QueryDict", "CommandForm", "ChatMessageForm"],
+    "sanitizers": ["shlex.quote", "escape"],
+    "sinks": ["os.system", "subprocess.call", "subprocess.Popen", "subprocess.run"],
+    "implicit": "no"
+  },
+  {
+    "vulnerability": "XSS (Cross-Site Scripting)",
+    "sources": ["get", "get_object_or_404", "QueryDict", "ContactMailForm", "ChatMessageForm"],
+    "sanitizers": ["clean", "escape", "flatatt", "render_template", "render", "render_to_response"],
+    "sinks": ["mark_safe", "Response", "Markup", "send_mail_jinja", "Raw"],
+    "implicit": "no"
+  },
+  {
+    "vulnerability": "Insecure Deserialization",
+    "sources": ["get", "QueryDict", "FileUpload", "request.body"],
+    "sanitizers": ["safe_load", "json.loads"],
+    "sinks": ["pickle.loads", "yaml.load", "marshal.loads", "jsonpickle.decode"],
+    "implicit": "yes"
+  },
+  {
+    "vulnerability": "Remote Code Execution",
+    "sources": ["get", "QueryDict", "CodeForm"],
+    "sanitizers": ["escape", "ast.literal_eval"],
+    "sinks": ["eval", "exec", "compile"],
+    "implicit": "yes"
+  },
+  {
+    "vulnerability": "YAML Injection",
+    "sources": ["get", "QueryDict", "FileUpload", "ConfigForm"],
+    "sanitizers": ["yaml.safe_load"],
+    "sinks": ["yaml.load"],
+    "implicit": "no"
+  }
+]
